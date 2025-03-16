@@ -326,11 +326,16 @@ def render_resource_mapping(resource_name, fhir_resources, df):
     other_fields = []
     
     for field_name, field_info in resource_fields.items():
-        if field_info.get('required', False):
-            required_fields.append(field_name)
-        elif field_info.get('must_support', False):
-            must_support_fields.append(field_name)
+        # Handle both dictionary and string field_info
+        if isinstance(field_info, dict):
+            if field_info.get('required', False):
+                required_fields.append(field_name)
+            elif field_info.get('must_support', False):
+                must_support_fields.append(field_name)
+            else:
+                other_fields.append(field_name)
         else:
+            # If field_info is a string (or other non-dict type), treat as an "other" field
             other_fields.append(field_name)
     
     # Sort fields with required first, then must-support, then others
@@ -435,13 +440,19 @@ def render_field_mapping(resource_name, field_name, field_info, df):
     
     # Display field with metadata indicators
     field_label = field_name
-    if field_info.get('required', False):
-        field_label = f"{field_label} 🚨"
-    elif field_info.get('must_support', False):
-        field_label = f"{field_label} ⭐"
     
-    # Get field type
-    field_type = field_info.get('type', 'string')
+    # Handle both dictionary and string field_info
+    if isinstance(field_info, dict):
+        if field_info.get('required', False):
+            field_label = f"{field_label} 🚨"
+        elif field_info.get('must_support', False):
+            field_label = f"{field_label} ⭐"
+        
+        # Get field type
+        field_type = field_info.get('type', 'string')
+    else:
+        # If field_info is a string or other non-dict type, use it as the type
+        field_type = 'string'
     
     # Don't show mapping UI for complex types that should be handled in composite fields
     if field_type in ['HumanName', 'Address', 'ContactPoint', 'Identifier', 'CodeableConcept'] and "." not in field_name:
