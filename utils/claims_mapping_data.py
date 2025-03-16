@@ -395,22 +395,76 @@ def get_claims_mapping(column_name):
         "pt": "patient",
         "pat": "patient",
         "mbr": "member",
+        "sub": "subscriber",
+        "benef": "beneficiary",
+        
+        # Provider related
+        "prov": "provider",
+        "phys": "physician",
+        "doc": "doctor",
+        "dr": "doctor",
+        "rend": "rendering",
+        "att": "attending",
+        
         # Dates
         "dob": "birth_date",
         "bd": "birth_date",
+        "bdate": "birth_date",
         "dos": "service_date",
         "svcdt": "service_date",
         "svc_dt": "service_date",
-        # Fields
+        "srvcdt": "service_date",
+        "disch": "discharge",
+        "adm": "admission",
+        "admit": "admission",
+        
+        # Claims related
+        "clm": "claim",
+        "eob": "explanation_of_benefit",
+        "hcfa": "claim_form",
+        "ub": "uniform_bill",
+        
+        # Diagnosis related
+        "dx": "diagnosis",
+        "diag": "diagnosis",
+        "icd": "diagnosis_code",
+        "icd10": "diagnosis_code",
+        "icd9": "diagnosis_code",
+        
+        # Procedure related
+        "px": "procedure",
+        "proc": "procedure",
+        "cpt": "procedure_code",
+        "hcpc": "procedure_code",
+        "hcpcs": "procedure_code",
+        
+        # Financial
+        "pd": "paid",
+        "pmt": "payment",
+        "pymt": "payment",
+        "ded": "deductible",
+        "coins": "coinsurance",
+        "copay": "copayment",
+        "oop": "out_of_pocket",
+        "bal": "balance",
+        "resp": "responsibility",
+        "liab": "liability",
+        "amt": "amount",
+        "tot": "total",
+        
+        # Other common fields
         "fname": "first_name",
         "lname": "last_name",
         "addr": "address",
-        "prov": "provider",
         "dt": "date",
-        "amt": "amount",
         "id": "identifier",
         "num": "number",
-        "clm": "claim"
+        "qty": "quantity",
+        "pos": "place_of_service",
+        "rev": "revenue",
+        "ndc": "national_drug_code",
+        "drg": "diagnosis_related_group",
+        "mod": "modifier"
     }
     
     # Try to expand abbreviated forms
@@ -453,16 +507,91 @@ def get_claims_mapping(column_name):
     # Try pattern matching for common healthcare data column patterns
     import re
     patterns = {
-        # Pattern: (target_column, confidence)
-        r"^pt[_\.]?id$": ("patient_id", 0.78),
-        r"^pat[_\.]?id$": ("patient_id", 0.78),
-        r"^mbr[_\.]?id$": ("patient_id", 0.78),
-        r"^clm[_\.]?id$": ("claim_id", 0.78),
-        r"^svc[_\.]?dt$": ("service_date", 0.78),
-        r"^svc[_\.]?date$": ("service_date", 0.78),
-        r"^birth[_\.]?dt$": ("birth_date", 0.78),
-        r"^paid[_\.]?amt$": ("paid_amount", 0.78),
-        r"^pay[_\.]?amt$": ("paid_amount", 0.75),
+        # Patient patterns (target_column, confidence)
+        r"^pt[_\.\-]?id$": ("patient_id", 0.78),
+        r"^pat[_\.\-]?id$": ("patient_id", 0.78),
+        r"^mbr[_\.\-]?id$": ("patient_id", 0.78),
+        r"^sub[_\.\-]?id$": ("patient_id", 0.78),
+        r"^member[_\.\-]?(num|number)$": ("patient_id", 0.78),
+        r"^patient[_\.\-]?(num|number)$": ("patient_id", 0.78),
+        r"^subscriber[_\.\-]?(num|number)$": ("patient_id", 0.78),
+        r"^med[_\.\-]?rec[_\.\-]?(num|number)$": ("patient_id", 0.76),
+        r"^p[_\.\-]?id$": ("patient_id", 0.70),
+        
+        # Claim patterns
+        r"^clm[_\.\-]?id$": ("claim_id", 0.78),
+        r"^claim[_\.\-]?(num|number)$": ("claim_id", 0.78),
+        r"^clm[_\.\-]?(num|number)$": ("claim_id", 0.78),
+        r"^c[_\.\-]?id$": ("claim_id", 0.70),
+        
+        # Provider patterns
+        r"^prov[_\.\-]?id$": ("provider_id", 0.78),
+        r"^provider[_\.\-]?(num|number)$": ("provider_id", 0.78),
+        r"^rendering[_\.\-]?(prov|provider)$": ("provider_id", 0.78),
+        r"^attending[_\.\-]?(prov|provider)$": ("provider_id", 0.78),
+        r"^npi[_\.\-]?(num|number)?$": ("provider_id", 0.80),
+        
+        # Date patterns
+        r"^svc[_\.\-]?dt$": ("service_date", 0.78),
+        r"^svc[_\.\-]?date$": ("service_date", 0.78),
+        r"^service[_\.\-]?date$": ("service_date", 0.78),
+        r"^date[_\.\-]?of[_\.\-]?service$": ("service_date", 0.80),
+        r"^dos$": ("service_date", 0.75),
+        r"^adm[_\.\-]?dt$": ("admission_date", 0.78),
+        r"^adm[_\.\-]?date$": ("admission_date", 0.78),
+        r"^admit[_\.\-]?date$": ("admission_date", 0.78),
+        r"^admission[_\.\-]?date$": ("admission_date", 0.78),
+        r"^date[_\.\-]?of[_\.\-]?admission$": ("admission_date", 0.80),
+        r"^disch[_\.\-]?dt$": ("discharge_date", 0.78),
+        r"^disch[_\.\-]?date$": ("discharge_date", 0.78),
+        r"^discharge[_\.\-]?date$": ("discharge_date", 0.78),
+        r"^date[_\.\-]?of[_\.\-]?discharge$": ("discharge_date", 0.80),
+        r"^birth[_\.\-]?dt$": ("birth_date", 0.78),
+        r"^birth[_\.\-]?date$": ("birth_date", 0.78),
+        r"^date[_\.\-]?of[_\.\-]?birth$": ("birth_date", 0.80),
+        
+        # Amount/financial patterns
+        r"^paid[_\.\-]?amt$": ("paid_amount", 0.78),
+        r"^pay[_\.\-]?amt$": ("paid_amount", 0.75),
+        r"^payment[_\.\-]?amount$": ("paid_amount", 0.78),
+        r"^allowed[_\.\-]?amt$": ("allowed_amount", 0.78),
+        r"^allowed[_\.\-]?amount$": ("allowed_amount", 0.78),
+        r"^billed[_\.\-]?amt$": ("billed_amount", 0.78),
+        r"^billed[_\.\-]?amount$": ("billed_amount", 0.78),
+        r"^charge[_\.\-]?amt$": ("billed_amount", 0.75),
+        r"^charge[_\.\-]?amount$": ("billed_amount", 0.75),
+        r"^copay[_\.\-]?amt$": ("copay_amount", 0.78),
+        r"^copay[_\.\-]?amount$": ("copay_amount", 0.78),
+        r"^coins[_\.\-]?amt$": ("coinsurance_amount", 0.78),
+        r"^coins[_\.\-]?amount$": ("coinsurance_amount", 0.78),
+        r"^ded[_\.\-]?amt$": ("deductible_amount", 0.78),
+        r"^ded[_\.\-]?amount$": ("deductible_amount", 0.78),
+        r"^oop[_\.\-]?amt$": ("out_of_pocket", 0.78),
+        r"^oop[_\.\-]?amount$": ("out_of_pocket", 0.78),
+        
+        # Diagnosis/procedure patterns
+        r"^diag[_\.\-]?cd$": ("diagnosis_code", 0.78),
+        r"^diag[_\.\-]?code$": ("diagnosis_code", 0.78),
+        r"^dx[_\.\-]?cd$": ("diagnosis_code", 0.78),
+        r"^dx[_\.\-]?code$": ("diagnosis_code", 0.78),
+        r"^proc[_\.\-]?cd$": ("procedure_code", 0.78),
+        r"^proc[_\.\-]?code$": ("procedure_code", 0.78),
+        r"^px[_\.\-]?cd$": ("procedure_code", 0.78),
+        r"^px[_\.\-]?code$": ("procedure_code", 0.78),
+        r"^icd[_\.\-]?(\d+)?[_\.\-]?cd$": ("diagnosis_code", 0.78),
+        r"^icd[_\.\-]?(\d+)?[_\.\-]?code$": ("diagnosis_code", 0.78),
+        r"^hcpcs[_\.\-]?cd$": ("hcpcs_code", 0.78),
+        r"^hcpcs[_\.\-]?code$": ("hcpcs_code", 0.78),
+        r"^cpt[_\.\-]?cd$": ("cpt_code", 0.78),
+        r"^cpt[_\.\-]?code$": ("cpt_code", 0.78),
+        
+        # Other common patterns
+        r"^rev[_\.\-]?cd$": ("revenue_code", 0.78),
+        r"^rev[_\.\-]?code$": ("revenue_code", 0.78),
+        r"^pos[_\.\-]?cd$": ("place_of_service", 0.78),
+        r"^pos[_\.\-]?code$": ("place_of_service", 0.78),
+        r"^drg[_\.\-]?cd$": ("drg_code", 0.78),
+        r"^drg[_\.\-]?code$": ("drg_code", 0.78),
     }
     
     for pattern, (target, confidence) in patterns.items():
@@ -493,7 +622,7 @@ def get_claims_mapping(column_name):
     # Use a more comprehensive approach with multiple keyword patterns
     
     # ExplanationOfBenefit-related keywords
-    eob_keywords = ["claim", "clm", "eob", "explanation", "benefit"]
+    eob_keywords = ["claim", "clm", "eob", "explanation", "benefit", "hcfa", "837", "ub04", "ub92", "ub", "cms1500", "cms-1500", "cms1450", "cms-1450", "institutional", "professional", "bill"]
     if any(kw in normalized for kw in eob_keywords):
         return {
             "column": "claim_id",
@@ -504,7 +633,7 @@ def get_claims_mapping(column_name):
         }
     
     # Patient-related keywords
-    patient_keywords = ["patient", "member", "mbr", "pt", "pat", "person", "subscriber"]
+    patient_keywords = ["patient", "member", "mbr", "pt", "pat", "person", "beneficiary", "subscriber", "insured", "client", "individual", "subject", "recipient", "consumer", "enrollee", "sub", "benef"]
     if any(kw in normalized for kw in patient_keywords):
         return {
             "column": "patient_id",
@@ -515,7 +644,7 @@ def get_claims_mapping(column_name):
         }
     
     # Provider-related keywords
-    provider_keywords = ["provider", "prov", "doctor", "physician", "npi"]
+    provider_keywords = ["provider", "prov", "doctor", "physician", "dr", "npi", "practitioner", "attending", "referring", "rendering", "billing", "servicing", "performing", "prescriber", "prescribing", "ordering", "supplier", "surgeon", "therapist", "nurse", "doc", "md", "do", "np", "pa"]
     if any(kw in normalized for kw in provider_keywords):
         return {
             "column": "provider_id",
@@ -526,8 +655,10 @@ def get_claims_mapping(column_name):
         }
     
     # Service date keywords
-    if (any(kw in normalized for kw in ["service", "svc"]) and 
-        any(kw in normalized for kw in ["date", "dt", "day"])):
+    service_keywords = ["service", "svc", "serv", "treatment", "visit", "encounter", "appointment", "event"]
+    date_keywords = ["date", "dt", "day", "time", "period", "when", "on"]
+    if (any(kw in normalized for kw in service_keywords) and 
+        any(kw in normalized for kw in date_keywords)):
         return {
             "column": "service_date",
             "resource": "ExplanationOfBenefit",
@@ -536,8 +667,34 @@ def get_claims_mapping(column_name):
             "match_type": "keyword_match"
         }
     
+    # Admission date keywords
+    admission_keywords = ["admission", "admit", "adm", "admitted", "entry"]
+    if (any(kw in normalized for kw in admission_keywords) and 
+        any(kw in normalized for kw in date_keywords)):
+        return {
+            "column": "admission_date",
+            "resource": "ExplanationOfBenefit",
+            "field": "careTeam.period.start",
+            "confidence": 0.6,
+            "match_type": "keyword_match"
+        }
+    
+    # Discharge date keywords  
+    discharge_keywords = ["discharge", "disch", "released", "exit", "departure"]
+    if (any(kw in normalized for kw in discharge_keywords) and 
+        any(kw in normalized for kw in date_keywords)):
+        return {
+            "column": "discharge_date",
+            "resource": "ExplanationOfBenefit",
+            "field": "careTeam.period.end",
+            "confidence": 0.6,
+            "match_type": "keyword_match"
+        }
+    
     # Amount-related keywords
-    amount_keywords = ["amount", "amt", "payment", "paid", "cost", "charge", "fee", "price"]
+    amount_keywords = ["amount", "amt", "payment", "paid", "pay", "cost", "charge", "charged", "fee", "price", 
+                       "dollar", "$", "reimburse", "reimbursement", "total", "sum", "expense", "spend", "value", 
+                       "balance", "remit", "remittance", "benefit", "spend"]
     if any(kw in normalized for kw in amount_keywords):
         return {
             "column": "paid_amount",
@@ -546,9 +703,21 @@ def get_claims_mapping(column_name):
             "confidence": 0.5,
             "match_type": "keyword_match"
         }
+    
+    # Patient responsibility related keywords
+    responsibility_keywords = ["responsibility", "liable", "liability", "patient_pay", "member_pay", "oop", 
+                              "out_of_pocket", "patient_portion", "member_portion", "patient_share", "cost_sharing"]
+    if any(kw in normalized for kw in responsibility_keywords):
+        return {
+            "column": "patient_responsibility",
+            "resource": "ExplanationOfBenefit",
+            "field": "item.adjudication.amount",
+            "confidence": 0.6,
+            "match_type": "keyword_match"
+        }
         
     # Date of birth keywords
-    dob_keywords = ["birth", "dob", "birthdate", "born"]
+    dob_keywords = ["birth", "dob", "birthdate", "born", "date_of_birth", "birth_dt", "birthdt", "birthdate", "birthday"]
     if any(kw in normalized for kw in dob_keywords):
         return {
             "column": "birth_date",
@@ -559,7 +728,8 @@ def get_claims_mapping(column_name):
         }
     
     # Gender/sex keywords
-    if "gender" in normalized or "sex" in normalized:
+    gender_keywords = ["gender", "sex", "male", "female", "m/f", "m_f"]
+    if any(kw in normalized for kw in gender_keywords):
         return {
             "column": "gender",
             "resource": "Patient",
@@ -569,13 +739,38 @@ def get_claims_mapping(column_name):
         }
     
     # Address-related keywords
-    address_keywords = ["address", "addr", "street", "location"]
+    address_keywords = ["address", "addr", "street", "location", "residence", "resides", "live", "lives", 
+                      "home", "house", "apartment", "apt", "suite", "unit", "postal", "zip", "state", "city"]
     if any(kw in normalized for kw in address_keywords):
         return {
             "column": "address",
             "resource": "Patient",
             "field": "address",
             "confidence": 0.5,
+            "match_type": "keyword_match"
+        }
+    
+    # Diagnosis-related keywords
+    diagnosis_keywords = ["diagnosis", "diag", "dx", "icd", "icd9", "icd10", "condition", "disease", "disorder", 
+                        "complaint", "problem", "ailment", "syndrome", "symptom", "pathology"]
+    if any(kw in normalized for kw in diagnosis_keywords):
+        return {
+            "column": "diagnosis_code",
+            "resource": "ExplanationOfBenefit",
+            "field": "diagnosis.diagnosisCodeableConcept",
+            "confidence": 0.6,
+            "match_type": "keyword_match"
+        }
+    
+    # Procedure-related keywords
+    procedure_keywords = ["procedure", "proc", "px", "cpt", "hcpcs", "operation", "treatment", "surgery", 
+                        "surgical", "intervention", "therapy", "therapeutic", "service"]
+    if any(kw in normalized for kw in procedure_keywords):
+        return {
+            "column": "procedure_code",
+            "resource": "ExplanationOfBenefit",
+            "field": "procedure.procedureCodeableConcept",
+            "confidence": 0.6,
             "match_type": "keyword_match"
         }
     
