@@ -21,6 +21,37 @@ def analyze_mapping_compliance(mappings, fhir_resources, fhir_standard):
     """
     compliance_metrics = {}
     
+    # Resource-specific requirements based on FHIR profiles
+    resource_requirements = {
+        "Patient": {
+            "required": ["identifier", "name", "gender"],
+            "must_support": ["birthDate", "address"],
+            "composite_fields": {
+                "name": ["name.given", "name.family"],
+                "address": ["address.line", "address.city", "address.state", "address.postalCode"]
+            }
+        },
+        "Condition": {
+            "required": ["clinicalStatus", "category", "code", "subject"],
+            "must_support": ["verificationStatus"],
+            "composite_fields": {}
+        },
+        "Encounter": {
+            "required": ["status", "class", "subject"],
+            "must_support": ["type", "period"],
+            "composite_fields": {
+                "period": ["period.start", "period.end"]
+            }
+        },
+        "Observation": {
+            "required": ["status", "code", "subject"],
+            "must_support": ["category", "value[x]", "effectiveDateTime", "effectivePeriod"],
+            "composite_fields": {
+                "effectivePeriod": ["effectivePeriod.start", "effectivePeriod.end"]
+            }
+        }
+    }
+    
     for resource_type, resource_mappings in mappings.items():
         if resource_type not in fhir_resources:
             continue
@@ -28,32 +59,58 @@ def analyze_mapping_compliance(mappings, fhir_resources, fhir_standard):
         # Get the resource definition
         resource_def = fhir_resources[resource_type]
         
-        # Track metrics for this resource
+        # Get mapped fields
+        mapped_fields = set(resource_mappings.keys())
+        
+        # Initialize field categories
         required_fields = []
         must_support_fields = []
         optional_fields = []
         
-        # Get mapped fields
-        mapped_fields = set(resource_mappings.keys())
-        
-        # Categorize fields
-        for field_name, field_data in resource_def.get("fields", {}).items():
-            # Skip internal fields or complex nested objects
-            if field_name.startswith("_") or isinstance(field_data, dict) and field_data.get("isArray", False):
-                continue
+        # Use resource-specific requirements if available
+        if resource_type in resource_requirements:
+            required_fields = resource_requirements[resource_type]["required"]
+            must_support_fields = resource_requirements[resource_type]["must_support"]
+            composite_fields = resource_requirements[resource_type]["composite_fields"]
+            
+            # Handle composite fields like name.given + name.family = name
+            for composite_field, components in composite_fields.items():
+                # Check if any component is mapped
+                composite_mapped = False
+                for component in components:
+                    base_component = component.split('.')[0] if '.' in component else component
+                    if base_component in mapped_fields:
+                        composite_mapped = True
+                        break
                 
-            if isinstance(field_data, dict):
-                # Check if required based on cardinality
-                min_value = field_data.get("min", 0)
-                if min_value > 0:
-                    required_fields.append(field_name)
-                elif field_data.get("mustSupport", False):
-                    must_support_fields.append(field_name)
+                # If any component is mapped, consider the composite field mapped
+                if composite_mapped and composite_field in required_fields:
+                    # Add composite field to mapped fields if not already there
+                    mapped_fields.add(composite_field)
+        else:
+            # Dynamically categorize fields based on cardinality
+            for field_name, field_data in resource_def.get("fields", {}).items():
+                # Skip internal fields or complex nested objects
+                if field_name.startswith("_") or isinstance(field_data, dict) and field_data.get("isArray", False):
+                    continue
+                    
+                if isinstance(field_data, dict):
+                    # Check if required based on cardinality
+                    min_value = field_data.get("min", 0)
+                    if min_value > 0:
+                        required_fields.append(field_name)
+                    elif field_data.get("mustSupport", False):
+                        must_support_fields.append(field_name)
+                    else:
+                        optional_fields.append(field_name)
                 else:
+                    # Default to optional for simple string descriptions
                     optional_fields.append(field_name)
-            else:
-                # Default to optional for simple string descriptions
-                optional_fields.append(field_name)
+        
+        # Get remaining optional fields
+        all_fields = set(resource_def.get("fields", {}).keys())
+        explicit_fields = set(required_fields) | set(must_support_fields)
+        optional_fields = list(all_fields - explicit_fields)
         
         # Calculate compliance metrics
         required_mapped = [f for f in required_fields if f in mapped_fields]
@@ -63,7 +120,7 @@ def analyze_mapping_compliance(mappings, fhir_resources, fhir_standard):
         # Calculate percentages
         required_pct = (len(required_mapped) / len(required_fields)) * 100 if required_fields else 100
         must_support_pct = (len(must_support_mapped) / len(must_support_fields)) * 100 if must_support_fields else 100
-        optional_pct = (len(optional_mapped) / len(optional_fields)) * 100 if optional_fields else 100
+        optional_pct = (len(optional_mapped) / len(optional_fields)) * 100 if optional_fields else 0  # If no optional fields, percentage is 0
         
         # Calculate overall completeness percentage with weighting
         # Required fields are weighted at 60%, must-support at 30%, optional at 10%

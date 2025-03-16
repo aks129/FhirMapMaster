@@ -217,6 +217,9 @@ def display_resource_mapping(resource_name, fhir_resources, df):
     # Get the resource definition
     resource_def = fhir_resources.get(resource_name, {})
     
+    # Apply composite field mapping logic for name, address, etc.
+    handle_composite_field_mapping(resource_name, st.session_state.finalized_mappings, df)
+    
     # Display resource information with Spider-Man theme
     st.markdown(f"### 🕸️ {resource_name} Web Connection")
     if 'description' in resource_def:
@@ -427,6 +430,103 @@ def display_resource_mapping(resource_name, fhir_resources, df):
                     confidence_color = "green" if confidence >= 0.7 else "orange" if confidence >= 0.4 else "red"
                     st.markdown(f"<p style='color:{confidence_color}'>{confidence_icon} {confidence_text}<br>Spider-Sense: {confidence:.2f}</p>", unsafe_allow_html=True)
 
+def handle_composite_field_mapping(resource_name, finalized_mappings, df):
+    """
+    Handle composite fields like name.given/name.family for Patient and other resources.
+    
+    Args:
+        resource_name: Name of the resource being mapped
+        finalized_mappings: Dict of finalized mappings
+        df: DataFrame containing the data
+    """
+    # Composite field definitions
+    composite_fields = {
+        "Patient": {
+            "name": {
+                "components": ["name.given", "name.family", "name.prefix", "name.suffix"],
+                "column_patterns": {
+                    "name.given": ["first_name", "given_name", "fname", "firstname"],
+                    "name.family": ["last_name", "family_name", "lname", "lastname", "surname"],
+                    "name.prefix": ["prefix", "title", "name_prefix"],
+                    "name.suffix": ["suffix", "name_suffix"]
+                }
+            },
+            "address": {
+                "components": ["address.line", "address.city", "address.state", "address.postalCode", "address.country"],
+                "column_patterns": {
+                    "address.line": ["address", "street", "addr", "address_line", "line1", "address_line1"],
+                    "address.city": ["city", "town", "municipality"],
+                    "address.state": ["state", "province", "region", "st"],
+                    "address.postalCode": ["zip", "zipcode", "postal_code", "postalcode", "zip_code"],
+                    "address.country": ["country", "nation"]
+                }
+            }
+        },
+        "Condition": {
+            "code": {
+                "components": ["code.coding.code", "code.coding.system", "code.coding.display", "code.text"],
+                "column_patterns": {
+                    "code.coding.code": ["condition_code", "dx_code", "diagnosis_code", "icd_code", "diag_code"],
+                    "code.coding.system": ["code_system", "coding_system", "system"],
+                    "code.coding.display": ["code_display", "diagnosis_text", "condition_text"],
+                    "code.text": ["condition_description", "diagnosis_description"]
+                }
+            }
+        }
+    }
+    
+    # If resource isn't in our list, return
+    if resource_name not in composite_fields:
+        return
+        
+    # Get composite fields for this resource
+    resource_composites = composite_fields[resource_name]
+    
+    # For each composite field
+    for composite_name, composite_info in resource_composites.items():
+        components = composite_info["components"]
+        column_patterns = composite_info["column_patterns"]
+        
+        # If parent field is already mapped, skip
+        if resource_name in finalized_mappings and composite_name in finalized_mappings[resource_name]:
+            continue
+            
+        # Find matching columns for each component
+        for component, patterns in column_patterns.items():
+            # Skip if component is already mapped
+            if resource_name in finalized_mappings and component in finalized_mappings[resource_name]:
+                continue
+                
+            # Look for column matches
+            for column in df.columns:
+                col_lower = column.lower().replace("_", "").replace("-", "").replace(" ", "")
+                for pattern in patterns:
+                    pattern_lower = pattern.lower().replace("_", "").replace("-", "").replace(" ", "")
+                    
+                    # If column matches pattern
+                    if pattern_lower in col_lower or col_lower in pattern_lower:
+                        # Add to finalized mappings
+                        if resource_name not in finalized_mappings:
+                            finalized_mappings[resource_name] = {}
+                            
+                        # Add component mapping
+                        finalized_mappings[resource_name][component] = {
+                            "column": column,
+                            "confidence": 0.85,  # High confidence for pattern matches
+                            "match_type": "composite_pattern"
+                        }
+                        
+                        # Also add parent field if not already present
+                        if composite_name not in finalized_mappings[resource_name]:
+                            finalized_mappings[resource_name][composite_name] = {
+                                "column": f"[Composite: {component}]",
+                                "confidence": 0.85,
+                                "match_type": "composite_parent"
+                            }
+                        
+                        # Once we find a match, break
+                        break
+                
 def handle_unmapped_columns(df, fhir_standard):
     """
     Handle unmapped columns with LLM assistance.
