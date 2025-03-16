@@ -270,6 +270,66 @@ def test_claims_mapping():
     knowledge = get_claims_mapping_knowledge_base()
     knowledge_length = len(knowledge.split('\n'))
     print(f"Generated knowledge base with {knowledge_length} lines")
+    
+    # Test pattern matching analytics
+    try:
+        from utils.cpcds_mapping import test_claims_pattern_matching
+        print("\n=== TESTING PATTERN MATCHING ANALYTICS ===")
+        
+        # Create an extended list of column names for thorough testing
+        extended_test_columns = test_columns + [
+            # More varied forms
+            "claim_number_id", "claim_identifier", "claim_key", 
+            "patient_medical_record_number", "member_number", "subscriber_id",
+            "rendering_provider", "billing_provider_id", "referring_provider",
+            "date_of_admission", "discharge_date", "from_date", "to_date",
+            # Abbreviated forms
+            "clm_nbr", "pt_id", "prov_npi", "svc_from_dt", "svc_to_dt",
+            # Common prefixes and suffixes
+            "primary_diagnosis_code", "secondary_dx_code", "admitting_diagnosis",
+            "claim_status_code", "claim_type_cd", "claim_adjustment_reason",
+            # Financial variations
+            "total_paid", "payment_amount", "patient_responsibility", "deductible_amount",
+            "coinsurance_amt", "copayment", "out_of_pocket", "allowed_amt"
+        ]
+        
+        # Run the pattern matching test
+        results = test_claims_pattern_matching(extended_test_columns)
+        
+        # Display results summary
+        print(f"\nMatched {len(results['success'])} out of {results['total']} columns ({results['success_rate_pct']})")
+        
+        # Display match type statistics
+        print("\nMatch type statistics:")
+        for match_type, count in results['match_types'].items():
+            if count > 0:
+                print(f"  🕸️ {match_type}: {count} matches")
+        
+        # Show a few sample successes with Spider-Man theme confidence indicators
+        print("\nSample successful matches:")
+        for i, match in enumerate(results['success'][:10]):  # Show first 10 matches
+            confidence = match['confidence']
+            # Spider-Man themed confidence indicators
+            if confidence >= 0.9:
+                indicator = "🟢"  # High confidence (Green)
+            elif confidence >= 0.7:
+                indicator = "🟡"  # Medium confidence (Yellow)
+            elif confidence >= 0.5:
+                indicator = "🟠"  # Low confidence (Orange)
+            else:
+                indicator = "🔴"  # Very low confidence (Red)
+                
+            print(f"  {indicator} {match['column']} -> {match['mapped_to']} (Confidence: {match['confidence']:.2f}, Type: {match['match_type']})")
+        
+        # Show a few failed matches
+        if results['failed']:
+            print("\nSample failed matches:")
+            for failed in results['failed'][:5]:  # Show first 5 failures
+                print(f"  ❌ {failed}")
+    
+    except ImportError as e:
+        print(f"Error testing pattern matching: {e}")
+        print("Make sure utils/cpcds_mapping.py is updated with the test_claims_pattern_matching function")
 
 if __name__ == "__main__":
     # Parse the CPCDS mappings
