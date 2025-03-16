@@ -1,6 +1,34 @@
 import streamlit as st
 import pandas as pd
+import os
+from io import StringIO
 from utils.data_processor import load_data
+
+def load_sample_data(file_path):
+    """
+    Load sample data from a file path.
+    
+    Args:
+        file_path: Path to the sample data file
+        
+    Returns:
+        pandas DataFrame containing the sample data
+    """
+    try:
+        # Open the file
+        with open(file_path, 'r') as f:
+            content = f.read()
+        
+        # Create a StringIO object to make it compatible with st.file_uploader return
+        string_data = StringIO(content)
+        string_data.name = os.path.basename(file_path)
+        
+        # Load the data
+        df = load_data(string_data)
+        return df, string_data
+    except Exception as e:
+        st.error(f"Error loading sample data: {str(e)}")
+        return None, None
 
 def render_file_uploader():
     """
@@ -21,6 +49,41 @@ def render_file_uploader():
     - 🕸️ Text files
     """)
     
+    # Sample data buttons (TRY ME!)
+    st.markdown("### 🚀 Quick Start with Sample Data")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        clinical_sample_clicked = st.button("🕸️ TRY ME: Clinical Data Sample", 
+                                          help="Load a sample clinical dataset to try Parker's mapping features")
+    
+    with col2:
+        claims_sample_clicked = st.button("🕸️ TRY ME: Claims Data Sample", 
+                                        help="Load a sample claims dataset to try Parker's mapping features")
+    
+    if clinical_sample_clicked:
+        with st.spinner("🕸️ Parker is fetching a clinical data sample..."):
+            df, file_obj = load_sample_data('sample_data/sample_clinical_data.csv')
+            if df is not None and not df.empty:
+                st.session_state.df = df
+                st.session_state.uploaded_file = file_obj
+                st.session_state.fhir_standard = "US Core"  # Set default FHIR standard for clinical data
+                st.success("🚀 Clinical data sample loaded! Parker suggests using US Core FHIR standard for this data.")
+                st.rerun()
+    
+    if claims_sample_clicked:
+        with st.spinner("🕸️ Parker is fetching a claims data sample..."):
+            df, file_obj = load_sample_data('sample_data/sample_claims_data.csv')
+            if df is not None and not df.empty:
+                st.session_state.df = df
+                st.session_state.uploaded_file = file_obj
+                st.session_state.fhir_standard = "CARIN BB"  # Set default FHIR standard for claims data
+                st.success("🚀 Claims data sample loaded! Parker suggests using CARIN BB FHIR standard for this data.")
+                st.rerun()
+    
+    st.markdown("### 📤 Or Upload Your Own Data")
+    
     # File uploader widget
     uploaded_file = st.file_uploader(
         "Choose a file",
@@ -31,7 +94,7 @@ def render_file_uploader():
     # If file is uploaded, process it
     if uploaded_file is not None:
         try:
-            with st.spinner("Processing file..."):
+            with st.spinner("🕸️ Processing your data..."):
                 # Load the data from the uploaded file
                 df = load_data(uploaded_file)
                 
@@ -58,8 +121,8 @@ def render_file_uploader():
             st.error(f"Error processing file: {str(e)}")
     
     # Show sample file template if no file is uploaded
-    if uploaded_file is None:
-        with st.expander("Need a sample file?"):
+    if uploaded_file is None and not (clinical_sample_clicked or claims_sample_clicked):
+        with st.expander("Need help with file format?"):
             st.markdown("""
             ### Sample Data Format
             
@@ -77,4 +140,6 @@ def render_file_uploader():
             12345,John,Doe,1980-05-15,M,E11.9,Type 2 diabetes without complications
             67890,Jane,Smith,1975-10-23,F,I10,Essential hypertension
             ```
+            
+            Or click one of the "TRY ME" buttons above to load a pre-configured sample dataset!
             """)

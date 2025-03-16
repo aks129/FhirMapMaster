@@ -1,0 +1,13 @@
+patient_id,first_name,last_name,birth_date,gender,encounter_date,practitioner_id,practitioner_name,condition_code,condition_description,vital_bp_systolic,vital_bp_diastolic,vital_temp,vital_heart_rate,vital_resp_rate,medication_code,medication_name,medication_dosage,medication_frequency
+PAT001,Peter,Parker,1995-08-10,M,2023-01-15,DOC101,Dr. Bruce Banner,E11.9,Type 2 diabetes without complications,122,78,98.6,72,16,MED201,Metformin,500mg,twice daily
+PAT001,Peter,Parker,1995-08-10,M,2023-03-10,DOC102,Dr. Stephen Strange,E11.9,Type 2 diabetes without complications,118,76,98.4,68,14,MED201,Metformin,500mg,twice daily
+PAT002,Mary,Watson,1998-05-22,F,2023-02-01,DOC101,Dr. Bruce Banner,J30.1,Allergic rhinitis due to pollen,110,72,98.8,76,16,MED202,Loratadine,10mg,once daily
+PAT003,Harry,Osborn,1995-07-15,M,2023-01-20,DOC102,Dr. Stephen Strange,I10,Essential hypertension,145,95,99.0,88,18,MED203,Lisinopril,20mg,once daily
+PAT003,Harry,Osborn,1995-07-15,M,2023-03-22,DOC103,Dr. Helen Cho,I10,Essential hypertension,138,88,98.6,82,16,MED203,Lisinopril,20mg,once daily
+PAT004,Gwen,Stacy,1997-12-05,F,2023-02-15,DOC103,Dr. Helen Cho,J45.909,Unspecified asthma,120,80,98.7,74,22,MED204,Albuterol,90mcg,as needed
+PAT005,Miles,Morales,2000-06-17,M,2023-01-30,DOC101,Dr. Bruce Banner,R51,Headache,116,74,98.9,68,16,MED205,Ibuprofen,400mg,every 6 hours
+PAT006,Michelle,Jones,1999-04-10,F,2023-02-10,DOC102,Dr. Stephen Strange,K59.00,Constipation,112,76,98.4,72,15,MED206,Docusate,100mg,once daily
+PAT007,Eddie,Brock,1988-11-23,M,2023-03-05,DOC103,Dr. Helen Cho,F41.9,Anxiety disorder,132,86,99.1,92,20,MED207,Sertraline,50mg,once daily
+PAT008,Felicia,Hardy,1991-08-19,F,2023-01-25,DOC101,Dr. Bruce Banner,M54.5,Low back pain,118,78,98.5,74,16,MED208,Cyclobenzaprine,10mg,three times daily
+PAT009,Otto,Octavius,1972-03-14,M,2023-02-28,DOC102,Dr. Stephen Strange,E78.5,Hyperlipidemia,126,82,98.6,76,16,MED209,Atorvastatin,40mg,once daily
+PAT010,May,Parker,1960-01-05,F,2023-03-15,DOC103,Dr. Helen Cho,I48.91,Atrial fibrillation,128,84,97.9,88,18,MED210,Warfarin,5mg,once daily

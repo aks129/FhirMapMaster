@@ -21,7 +21,19 @@ def load_data(uploaded_file):
         if file_extension == 'csv':
             df = pd.read_csv(uploaded_file)
         elif file_extension == 'xlsx' or file_extension == 'xls':
-            df = pd.read_excel(uploaded_file)
+            try:
+                # First attempt with default engine
+                df = pd.read_excel(uploaded_file)
+            except Exception as excel_err:
+                try:
+                    # Try with openpyxl engine if default fails
+                    df = pd.read_excel(uploaded_file, engine='openpyxl')
+                except Exception as openpyxl_err:
+                    try:
+                        # Last attempt with xlrd engine
+                        df = pd.read_excel(uploaded_file, engine='xlrd')
+                    except Exception as xlrd_err:
+                        raise ValueError(f"Failed to read Excel file. Please ensure it's not corrupted. Error: {str(excel_err)}")
         elif file_extension == 'json':
             # Handle both JSON lines and regular JSON
             try:
