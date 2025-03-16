@@ -901,7 +901,14 @@ def handle_composite_field_mapping(resource_name, finalized_mappings, df):
         finalized_mappings: Dict of finalized mappings
         df: DataFrame containing the data
     """
-    # Composite field definitions with FHIR datatype information
+    # Get composite field definitions from our global function
+    composite_fields_def = get_composite_field_definitions(resource_name)
+    
+    # If no composites for this resource, return
+    if not composite_fields_def:
+        return
+    
+    # Define the column patterns for component field pattern matching
     composite_fields = {
         "Patient": {
             "name": {
@@ -992,10 +999,10 @@ def handle_composite_field_mapping(resource_name, finalized_mappings, df):
         }
     }
     
-    # If resource isn't in our list, return
+    # If resource isn't in our list, return 
     if resource_name not in composite_fields:
         return
-        
+    
     # Get composite fields for this resource
     resource_composites = composite_fields[resource_name]
     
