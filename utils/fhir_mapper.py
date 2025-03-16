@@ -227,17 +227,61 @@ def suggest_mappings(df, standard):
     mappings = {}
     
     # Function to calculate similarity score between column name and FHIR field
-    def calculate_similarity(column_name, fhir_field):
+    def calculate_similarity(column_name, fhir_field, resource_name):
         column_name = column_name.lower()
         fhir_field = fhir_field.lower()
+        resource_name = resource_name.lower()
         
-        # Direct match
+        # Extract the entity prefix from the column name (e.g., "patient_id" -> "patient")
+        column_prefix = column_name.split('_')[0] if '_' in column_name else ""
+        
+        # Check if the column is explicitly associated with a resource by prefix
+        resource_match = False
+        
+        # Define mappings between common column prefixes and FHIR resources
+        resource_prefixes = {
+            'patient': ['patient'],
+            'practitioner': ['practitioner', 'doctor', 'provider'],
+            'observation': ['observation', 'vital', 'lab', 'test'],
+            'condition': ['condition', 'diagnosis', 'problem'],
+            'medication': ['medication', 'med', 'drug'],
+            'encounter': ['encounter', 'visit', 'admission'],
+            'procedure': ['procedure', 'surgery', 'treatment'],
+            'coverage': ['coverage', 'insurance', 'plan'],
+            'claim': ['claim', 'bill', 'invoice'],
+            'organization': ['organization', 'org', 'facility', 'hospital']
+        }
+        
+        # Check if column prefix matches resource
+        for res, prefixes in resource_prefixes.items():
+            if column_prefix in prefixes and res in resource_name:
+                resource_match = True
+                break
+            
+        # Direct match - strongest case
         if column_name == fhir_field:
-            return 1.0
+            # If this is a direct match and the resource also matches the column prefix, this is ideal
+            return 1.0 + (0.2 if resource_match else 0.0)
+        
+        # Penalize mismatched resources (e.g., patient_id mapping to Practitioner.id)
+        if column_prefix and column_prefix in resource_prefixes:
+            for matching_resource in resource_prefixes.keys():
+                if column_prefix in resource_prefixes[matching_resource] and matching_resource not in resource_name.lower():
+                    # This column has a prefix that suggests a different resource - apply penalty
+                    penalty = -0.5
+                    return penalty
         
         # Contains match
         if column_name in fhir_field or fhir_field in column_name:
-            return 0.8
+            base_score = 0.8
+            # Boost if the resource matches
+            if resource_match:
+                base_score += 0.15
+            return base_score
+        
+        # If the column has an entity prefix but doesn't match this resource, lower the score
+        if column_prefix and not resource_match and column_prefix in sum(resource_prefixes.values(), []):
+            return 0.1  # Very low base score for mismatched resources
         
         # Check for common prefixes/suffixes and abbreviations
         column_parts = re.split(r'[_\s\-]', column_name)
@@ -246,13 +290,17 @@ def suggest_mappings(df, standard):
         # Check for parts match
         common_parts = set(column_parts).intersection(set(fhir_parts))
         if common_parts:
-            return 0.5 + (0.3 * (len(common_parts) / max(len(column_parts), len(fhir_parts))))
+            base_score = 0.5 + (0.3 * (len(common_parts) / max(len(column_parts), len(fhir_parts))))
+            # Boost if the resource matches
+            if resource_match:
+                base_score += 0.1
+            return base_score
         
         # Low confidence for potential matches
         for col_part in column_parts:
             for fhir_part in fhir_parts:
                 if (col_part in fhir_part or fhir_part in col_part) and len(col_part) > 2 and len(fhir_part) > 2:
-                    return 0.4
+                    return 0.4 + (0.1 if resource_match else 0.0)
         
         return 0.0  # No obvious connection
     
@@ -264,17 +312,66 @@ def suggest_mappings(df, standard):
         'address': lambda s: (isinstance(s, pd.Series) and s.astype(str).str.contains(r'\d+\s+\w+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd)', case=False).any()),
         'identifier': lambda s: s.nunique() > 0.8 * len(df) if len(df) > 10 else False
     }
-
+    
+    # Pre-filter columns that explicitly mention entities
+    resource_column_map = {}
+    
+    # Map columns to likely resources based on their name
     for column in df.columns:
-        best_resource = None
-        best_field = None
-        best_score = 0.0
+        column_lower = column.lower()
+        prefix = column_lower.split('_')[0] if '_' in column_lower else column_lower
         
-        for resource_name, resource in resources.items():
+        # Check if column has a clear entity prefix and map it to the appropriate resource
+        if prefix == 'patient':
+            if 'Patient' not in resource_column_map:
+                resource_column_map['Patient'] = []
+            resource_column_map['Patient'].append(column)
+        elif prefix in ['practitioner', 'doctor', 'provider']:
+            if 'Practitioner' not in resource_column_map:
+                resource_column_map['Practitioner'] = []
+            resource_column_map['Practitioner'].append(column)
+        elif prefix in ['medication', 'med', 'drug']:
+            if 'Medication' not in resource_column_map:
+                resource_column_map['Medication'] = []
+            resource_column_map['Medication'].append(column)
+        elif prefix in ['condition', 'diagnosis', 'problem']:
+            if 'Condition' not in resource_column_map:
+                resource_column_map['Condition'] = []
+            resource_column_map['Condition'].append(column)
+        elif prefix in ['encounter', 'visit']:
+            if 'Encounter' not in resource_column_map:
+                resource_column_map['Encounter'] = []
+            resource_column_map['Encounter'].append(column)
+        elif prefix in ['vital', 'observation', 'lab', 'test']:
+            if 'Observation' not in resource_column_map:
+                resource_column_map['Observation'] = []
+            resource_column_map['Observation'].append(column)
+        else:
+            # For columns without clear prefix, consider them for all resources
+            for resource_name in resources.keys():
+                if resource_name not in resource_column_map:
+                    resource_column_map[resource_name] = []
+                resource_column_map[resource_name].append(column)
+
+    # Process all columns, with smart mapping
+    for resource_name, resource in resources.items():
+        # Get columns to consider for this resource
+        columns_to_process = resource_column_map.get(resource_name, [])
+        if not columns_to_process:
+            continue
+            
+        for column in columns_to_process:
+            best_field = None
+            best_score = 0.0
+            
             for field, description in resource['fields'].items():
-                # Calculate basic name similarity
-                similarity = calculate_similarity(column, field)
+                # Calculate similarity with resource context considered
+                similarity = calculate_similarity(column, field, resource_name)
                 
+                # Skip if negative similarity (indicating a resource mismatch)
+                if similarity < 0:
+                    continue
+                    
                 # Check for data pattern matches to boost confidence
                 if field in data_patterns and data_patterns[field](df[column]):
                     similarity += 0.3
@@ -285,17 +382,22 @@ def suggest_mappings(df, standard):
                 
                 if similarity > best_score:
                     best_score = similarity
-                    best_resource = resource_name
                     best_field = field
-        
-        if best_score > 0.3:  # Only include matches with reasonable confidence
-            if best_resource not in mappings:
-                mappings[best_resource] = {}
             
-            mappings[best_resource][best_field] = {
-                'column': column,
-                'confidence': round(best_score, 2)
-            }
+            if best_score > 0.3 and best_field:  # Only include matches with reasonable confidence
+                if resource_name not in mappings:
+                    mappings[resource_name] = {}
+                
+                # Don't overwrite an existing mapping if it has a higher confidence
+                if best_field in mappings[resource_name]:
+                    existing_mapping = mappings[resource_name][best_field]
+                    if existing_mapping['confidence'] >= best_score:
+                        continue
+                
+                mappings[resource_name][best_field] = {
+                    'column': column,
+                    'confidence': round(best_score, 2)
+                }
     
     return mappings
 
