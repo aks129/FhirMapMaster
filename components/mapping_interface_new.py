@@ -290,6 +290,11 @@ def render_resource_mapping(resource_name, fhir_resources, df):
     # Get resource fields and information
     resource_fields = fhir_resources[resource_name].get('fields', {})
     
+    # Debug information
+    st.write(f"Debug: Resource name: {resource_name}")
+    st.write(f"Debug: Resource fields count: {len(resource_fields)}")
+    st.write(f"Debug: First few fields: {list(resource_fields.keys())[:5] if resource_fields else 'No fields found'}")
+    
     # Initialize resource in finalized mappings if not present
     if resource_name not in st.session_state.finalized_mappings:
         st.session_state.finalized_mappings[resource_name] = {}
