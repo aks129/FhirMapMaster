@@ -8,7 +8,14 @@ def render_mapping_interface():
     """
     Render the mapping interface component.
     """
-    st.header("Step 3: FHIR Mapping")
+    st.header("🕸️ Step 3: Parker's Web Mapping Adventure")
+    
+    st.markdown("""
+    ### *"Time to connect the web strands between your data and FHIR!"*
+    
+    Parker has analyzed your data structure and is ready to help you map it to the FHIR standard.
+    With his spider-sense, he's already detected the most likely connections!
+    """)
     
     # Only continue if data exists in session state
     if st.session_state.df is not None:
@@ -17,7 +24,7 @@ def render_mapping_interface():
         
         # Initialize mappings if not already present
         if 'suggested_mappings' not in st.session_state:
-            with st.spinner("Generating mapping suggestions..."):
+            with st.spinner("🕸️ Parker is spinning the mapping web..."):
                 st.session_state.suggested_mappings = suggest_mappings(df, fhir_standard)
         
         # Initialize LLM client for unmapped fields
@@ -27,15 +34,17 @@ def render_mapping_interface():
         # Get FHIR resources for the selected standard
         fhir_resources = get_fhir_resources(fhir_standard)
         
-        # Display mapping information
-        st.subheader(f"Mapping to {fhir_standard}")
+        # Display mapping information with Parker theme
+        st.subheader(f"🕸️ Connecting Your Data to {fhir_standard}")
         st.markdown("""
-        Review the suggested mappings below. For each FHIR field, the system has suggested a mapping from your data columns
-        with a confidence score. You can:
+        Parker has used his spider-sense to suggest mappings between your data columns and FHIR fields.
+        Each mapping comes with a confidence score to help you make decisions.
         
-        1. Accept the suggested mappings
-        2. Modify mappings by selecting different source columns
-        3. Request LLM assistance for unmapped columns
+        **Parker's Web-Slinging Options:**
+        
+        1. 🕸️ **Accept the Suggested Web Connections** - Trust Parker's spider-sense
+        2. 🕸️ **Modify the Web Strands** - Select different source columns
+        3. 🕸️ **Request AI Spider-Sense Assistance** - Get help for unmapped columns
         """)
         
         # Initialize the finalized mappings if it doesn't exist
@@ -63,8 +72,8 @@ def render_mapping_interface():
         with resource_tabs[-1]:
             handle_unmapped_columns(df, fhir_standard)
         
-        # Generate final mapping preview
-        st.subheader("Final Mapping Preview")
+        # Generate final mapping preview with Spider-Man theme
+        st.subheader("🕸️ Parker's Web of Connections - Final Preview")
         
         if st.session_state.finalized_mappings:
             # Display a summary of the finalized mappings
@@ -75,31 +84,35 @@ def render_mapping_interface():
                         "FHIR Resource": resource,
                         "FHIR Field": field,
                         "Source Column": mapping_info['column'],
-                        "Confidence": f"{mapping_info['confidence']:.2f}"
+                        "Spider-Sense Confidence": f"{mapping_info['confidence']:.2f}"
                     })
             
             if mapping_summary:
+                st.markdown("### 🕸️ Your Data Web is Ready!")
                 st.dataframe(pd.DataFrame(mapping_summary), use_container_width=True)
             else:
-                st.info("No mappings have been finalized yet.")
+                st.info("🕸️ Parker hasn't spun any web connections yet. Start mapping above!")
         else:
-            st.info("No mappings have been finalized yet.")
+            st.info("🕸️ Parker hasn't spun any web connections yet. Start mapping above!")
         
-        # Option to continue to export
+        # Option to continue to export with Spider-Man theme
         st.markdown("---")
+        st.markdown("""
+        ### *"Your web is taking shape! Ready for the next leap?"*
+        """)
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("Re-generate Mappings"):
+            if st.button("🕸️ Respin the Web"):
                 st.session_state.suggested_mappings = suggest_mappings(df, fhir_standard)
                 st.rerun()
         
         with col2:
-            if st.button("Continue to Export"):
+            if st.button("🕸️ Export Your Web"):
                 st.session_state.export_step = True
                 st.rerun()
     else:
-        st.error("No data available. Please upload a file first.")
-        if st.button("Go Back to File Upload"):
+        st.error("🕸️ Parker's web is empty! No data available for mapping. Please upload a file first.")
+        if st.button("🕷️ Swing Back to Web Casting"):
             st.session_state.uploaded_file = None
             st.session_state.mapping_step = False
             st.rerun()
@@ -119,10 +132,14 @@ def display_resource_mapping(resource_name, fhir_resources, df):
     # Get the resource definition
     resource_def = fhir_resources.get(resource_name, {})
     
-    # Display resource information
-    st.markdown(f"### {resource_name}")
+    # Display resource information with Spider-Man theme
+    st.markdown(f"### 🕸️ {resource_name} Web Connection")
     if 'description' in resource_def:
         st.markdown(f"*{resource_def['description']}*")
+    
+    st.markdown("""
+    Connect your data strands to these FHIR web anchors. Parker has detected the most likely connections!
+    """)
     
     # Get all available columns in the dataframe
     all_columns = list(df.columns)
@@ -180,11 +197,24 @@ def display_resource_mapping(resource_name, fhir_resources, df):
                     del st.session_state.finalized_mappings[resource_name][field]
             
             with col3:
-                # Display confidence score with appropriate color
+                # Display confidence score with appropriate color and Spider-Man theme
                 if current_mapping is not None:
                     confidence = current_mapping['confidence']
+                    if confidence >= 0.8:
+                        confidence_icon = "🟢"
+                        confidence_text = "Strong"
+                    elif confidence >= 0.6:
+                        confidence_icon = "🟡"
+                        confidence_text = "Good"
+                    elif confidence >= 0.4:
+                        confidence_icon = "🟠"
+                        confidence_text = "Moderate"
+                    else:
+                        confidence_icon = "🔴"
+                        confidence_text = "Weak"
+                    
                     confidence_color = "green" if confidence >= 0.7 else "orange" if confidence >= 0.4 else "red"
-                    st.markdown(f"<p style='color:{confidence_color}'>Confidence: {confidence:.2f}</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='color:{confidence_color}'>{confidence_icon} {confidence_text}<br>Spider-Sense: {confidence:.2f}</p>", unsafe_allow_html=True)
 
 def handle_unmapped_columns(df, fhir_standard):
     """
@@ -194,10 +224,12 @@ def handle_unmapped_columns(df, fhir_standard):
         df: pandas DataFrame containing the data
         fhir_standard: The FHIR standard being used
     """
-    st.markdown("### Unmapped Columns")
+    st.markdown("### 🕸️ Loose Strands in the Web")
     st.markdown("""
-    The following columns from your dataset have not been mapped to any FHIR field.
-    You can get LLM-assisted suggestions for these columns.
+    Parker's spider-sense has detected these columns in your dataset that haven't been connected to any FHIR field yet.
+    You can use Parker's enhanced AI spider-sense to suggest connections for these loose strands.
+    
+    *"Let's make sure no data gets left hanging in the web!"*
     """)
     
     # Get all mapped columns
@@ -210,11 +242,11 @@ def handle_unmapped_columns(df, fhir_standard):
     unmapped_columns = [col for col in df.columns if col not in mapped_columns]
     
     if not unmapped_columns:
-        st.success("All columns have been mapped!")
+        st.success("🕸️ Amazing web-slinging work! All data strands are connected!")
         return
     
     # Display unmapped columns
-    st.markdown(f"**{len(unmapped_columns)} Unmapped Columns:**")
+    st.markdown(f"**🕸️ {len(unmapped_columns)} Loose Strands Detected:**")
     
     # Initialize LLM suggestions if not already present
     if 'llm_suggestions' not in st.session_state:
@@ -222,16 +254,16 @@ def handle_unmapped_columns(df, fhir_standard):
     
     # Handle each unmapped column
     for column in unmapped_columns:
-        with st.expander(f"{column}"):
+        with st.expander(f"🧵 {column}"):
             st.dataframe(df[column].head(5), use_container_width=True)
             
             # Check if we already have a suggestion for this column
             if column in st.session_state.llm_suggestions:
                 display_llm_suggestion(column, fhir_standard)
             else:
-                # Button to get LLM suggestion
-                if st.button(f"Get LLM Suggestion for {column}", key=f"llm_btn_{column}"):
-                    with st.spinner(f"Analyzing '{column}' with LLM..."):
+                # Button to get LLM suggestion with Spider-Man theme
+                if st.button(f"🕷️ Activate Spider-Sense for {column}", key=f"llm_btn_{column}"):
+                    with st.spinner(f"🕸️ Parker is analyzing '{column}' with enhanced Spider-Sense..."):
                         # Get LLM suggestion for this column
                         sample_values = df[column].dropna().unique().tolist()[:10]
                         suggestion = {}
@@ -265,16 +297,28 @@ def display_llm_suggestion(column, fhir_standard):
     """
     suggestion = st.session_state.llm_suggestions[column]
     
-    # Display the suggestion
-    st.markdown("**LLM Suggestion:**")
+    # Display the suggestion with Spider-Man theme
+    st.markdown("**🕷️ Parker's Spider-Sense Suggestion:**")
     
     if suggestion["suggested_resource"] and suggestion["suggested_field"]:
-        st.markdown(f"Map to: **{suggestion['suggested_resource']}.{suggestion['suggested_field']}**")
-        st.markdown(f"Confidence: {suggestion['confidence']:.2f}")
-        st.markdown(f"Explanation: {suggestion['explanation']}")
+        st.markdown(f"🕸️ Connect to: **{suggestion['suggested_resource']}.{suggestion['suggested_field']}**")
         
-        # Button to accept the suggestion
-        if st.button(f"Accept Suggestion for {column}", key=f"accept_{column}"):
+        # Show confidence with spider theme
+        confidence = suggestion['confidence']
+        if confidence >= 0.8:
+            confidence_label = "🟢 Spider-Sense Tingling Strongly"
+        elif confidence >= 0.6:
+            confidence_label = "🟡 Spider-Sense Tingling"
+        elif confidence >= 0.4:
+            confidence_label = "🟠 Slight Spider-Sense Tingling"
+        else:
+            confidence_label = "🔴 Faint Spider-Sense"
+            
+        st.markdown(f"**{confidence_label}** (Score: {confidence:.2f})")
+        st.markdown(f"**Web Analysis:** {suggestion['explanation']}")
+        
+        # Button to accept the suggestion with Spider-Man theme
+        if st.button(f"🕸️ Attach Web to {column}", key=f"accept_{column}"):
             resource = suggestion["suggested_resource"]
             field = suggestion["suggested_field"]
             
@@ -288,8 +332,8 @@ def display_llm_suggestion(column, fhir_standard):
                 'confidence': suggestion['confidence']
             }
             
-            st.success(f"Added mapping: {column} → {resource}.{field}")
+            st.success(f"🕸️ Web connection successful! {column} → {resource}.{field}")
             st.rerun()
     else:
-        st.warning("No specific mapping could be suggested.")
-        st.markdown(f"Explanation: {suggestion['explanation']}")
+        st.warning("🕸️ Parker's Spider-Sense couldn't find a clear connection.")
+        st.markdown(f"**Analysis:** {suggestion['explanation']}")

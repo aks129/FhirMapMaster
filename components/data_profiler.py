@@ -107,20 +107,24 @@ def render_data_profiler():
             x='Column',
             y='Unique Percentage',
             color='Unique Percentage',
-            title='Unique Values by Column',
+            color_continuous_scale='blues',
+            title='Spider-Web Strand Diversity - Unique Values by Column',
             labels={'Unique Percentage': 'Unique Values (%)'},
             height=400
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Option to continue to mapping
+        # Option to continue to mapping with Spider-Man theme
         st.markdown("---")
-        if st.button("Continue to Mapping"):
+        st.markdown("""
+        ### *"With great data comes great mapping responsibility!"*
+        """)
+        if st.button("🕸️ Spin the Mapping Web 🕸️"):
             st.session_state.mapping_step = True
             st.rerun()
     else:
-        st.error("No data available. Please upload a file first.")
-        if st.button("Go Back to File Upload"):
+        st.error("🕸️ My Spider-Sense can't find any data! Please upload a file first.")
+        if st.button("🕷️ Swing Back to File Upload"):
             st.session_state.uploaded_file = None
             st.rerun()
 
