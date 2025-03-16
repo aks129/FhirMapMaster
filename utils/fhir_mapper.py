@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 import json
 import re
+from utils.fhir_ig_loader import fetch_us_core_profiles, fetch_carin_bb_profiles, enrich_fhir_resources_with_ig_profiles
 
 # FHIR Resource Type definitions
 US_CORE_RESOURCES = {
@@ -156,12 +157,60 @@ def get_fhir_resources(standard):
     Returns:
         dict containing resource definitions
     """
+    resources = {}
+    
     if "US Core" in standard:
-        return US_CORE_RESOURCES
+        # Start with the base resources
+        resources = US_CORE_RESOURCES.copy()
+        
+        # Try to enrich with Implementation Guide profiles
+        try:
+            with st.spinner("Enhancing with US Core Implementation Guide..."):
+                # Fetch and enrich with US Core Implementation Guide
+                ig_profiles = fetch_us_core_profiles()
+                
+                # Enrich our base resources with IG-specific details
+                for resource_name, resource_data in ig_profiles.items():
+                    # If resource exists, merge the fields
+                    if resource_name in resources:
+                        if "fields" in resource_data:
+                            resources[resource_name]["fields"].update(resource_data["fields"])
+                        if "description" in resource_data:
+                            resources[resource_name]["description"] = resource_data["description"]
+                    else:
+                        # If it's a new resource, add it
+                        resources[resource_name] = resource_data
+        except Exception as e:
+            st.warning(f"Could not enhance with US Core Implementation Guide: {str(e)}")
+            
     elif "CARIN BB" in standard:
-        return CARIN_BB_RESOURCES
+        # Start with the base resources
+        resources = CARIN_BB_RESOURCES.copy()
+        
+        # Try to enrich with Implementation Guide profiles
+        try:
+            with st.spinner("Enhancing with CARIN BB Implementation Guide..."):
+                # Fetch and enrich with CARIN BB Implementation Guide
+                ig_profiles = fetch_carin_bb_profiles()
+                
+                # Enrich our base resources with IG-specific details
+                for resource_name, resource_data in ig_profiles.items():
+                    # If resource exists, merge the fields
+                    if resource_name in resources:
+                        if "fields" in resource_data:
+                            resources[resource_name]["fields"].update(resource_data["fields"])
+                        if "description" in resource_data:
+                            resources[resource_name]["description"] = resource_data["description"]
+                    else:
+                        # If it's a new resource, add it
+                        resources[resource_name] = resource_data
+        except Exception as e:
+            st.warning(f"Could not enhance with CARIN BB Implementation Guide: {str(e)}")
+            
     else:
         return {}
+        
+    return resources
 
 def suggest_mappings(df, standard):
     """

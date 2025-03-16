@@ -47,10 +47,25 @@ def analyze_unmapped_column(client, column_name, sample_values, fhir_standard):
             "explanation": "Anthropic API key is not available."
         }
     
+    # Import resources to get available resources and fields
+    from utils.fhir_mapper import get_fhir_resources
+    
+    # Get the FHIR resources for this standard
+    resources = get_fhir_resources(fhir_standard)
+    
     # Format sample values for the prompt
     sample_str = str(sample_values[:10])
     
-    # Create the prompt
+    # Create a structured representation of the available resources and fields
+    resource_info = {}
+    for resource_name, resource_data in resources.items():
+        if 'fields' in resource_data:
+            resource_info[resource_name] = {
+                'description': resource_data.get('description', f'{resource_name} resource'),
+                'fields': resource_data['fields']
+            }
+    
+    # Create the prompt with enhanced FHIR knowledge
     prompt = f"""
 You are a healthcare data expert specializing in FHIR HL7 data models. You're helping map healthcare data to the {fhir_standard} implementation guide.
 
@@ -59,12 +74,15 @@ I have a column in my healthcare dataset that needs mapping to FHIR:
 Column name: {column_name}
 Sample values: {sample_str}
 
-Based on the column name and sample values, suggest the most appropriate FHIR resource and field from the {fhir_standard} implementation guide that this data should map to.
+Here are the available FHIR resources and fields in the {fhir_standard} Implementation Guide:
+{json.dumps(resource_info, indent=2)}
+
+Based on the column name and sample values, suggest the most appropriate FHIR resource and field from the above list that this data should map to.
 
 Format your response as a JSON object with these fields:
 - suggested_resource: The name of the FHIR resource (e.g., "Patient", "Observation")
 - suggested_field: The specific field within that resource
-- confidence: A number between 0 and 1 indicating your confidence in this mapping
+- confidence: A number between 0 and 1 indicating your confidence in this mapping (be conservative - only use 0.8+ for very clear matches)
 - explanation: A brief explanation of your reasoning
 
 Response:
