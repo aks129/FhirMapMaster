@@ -22,6 +22,10 @@ if 'mappings' not in st.session_state:
     st.session_state.mappings = {}
 if 'fhir_standard' not in st.session_state:
     st.session_state.fhir_standard = "US Core"
+if 'ig_version' not in st.session_state:
+    st.session_state.ig_version = "6.1.0"
+if 'resource_selection_step' not in st.session_state:
+    st.session_state.resource_selection_step = False
 if 'mapping_step' not in st.session_state:
     st.session_state.mapping_step = False
 if 'export_step' not in st.session_state:
@@ -137,10 +141,6 @@ with st.sidebar:
 
 # Import the new components
 from components.resource_selector import render_resource_selector
-
-# Add resource_selection step to session state if not present
-if 'resource_selection_step' not in st.session_state:
-    st.session_state.resource_selection_step = False
 
 # Main workflow
 # Step 1: File Upload and Data Preview
