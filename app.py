@@ -101,6 +101,9 @@ with st.sidebar:
     profile_status = "✅ Spider-Sense Analyzed Data" if st.session_state.df is not None else "⏳ Waiting for Data to Analyze" 
     st.write(profile_status)
     
+    resource_status = "✅ FHIR Resources Selected" if st.session_state.resource_selection_step else "⏳ Waiting to Select Resources"
+    st.write(resource_status)
+    
     mapping_status = "✅ Mapped with Spider Precision" if st.session_state.mapping_step else "⏳ Waiting to Spin the Mapping Web"
     st.write(mapping_status)
     
@@ -114,6 +117,7 @@ with st.sidebar:
         st.session_state.uploaded_file = None
         st.session_state.df = None
         st.session_state.mappings = {}
+        st.session_state.resource_selection_step = False
         st.session_state.mapping_step = False
         st.session_state.export_step = False
         st.session_state.llm_suggestions = {}
@@ -131,17 +135,33 @@ with st.sidebar:
             
         st.rerun()
 
+# Import the new components
+from components.resource_selector import render_resource_selector
+
+# Add resource_selection step to session state if not present
+if 'resource_selection_step' not in st.session_state:
+    st.session_state.resource_selection_step = False
+
 # Main workflow
 # Step 1: File Upload and Data Preview
 if st.session_state.uploaded_file is None:
     render_file_uploader()
 # Step 2: Data Profiling and Statistics
-elif st.session_state.df is not None and not st.session_state.mapping_step:
-    render_data_profiler()
-# Step 3: Mapping Interface
+elif st.session_state.df is not None and not st.session_state.resource_selection_step:
+    # Move to resource selection when finished with profiling
+    if render_data_profiler():
+        st.session_state.resource_selection_step = True
+        st.rerun()
+# Step 3: Resource Selection
+elif st.session_state.df is not None and st.session_state.resource_selection_step and not st.session_state.mapping_step:
+    # Move to mapping when resource selection is complete
+    if render_resource_selector():
+        st.session_state.mapping_step = True
+        st.rerun()
+# Step 4: Mapping Interface
 elif st.session_state.df is not None and st.session_state.mapping_step and not st.session_state.export_step:
     render_mapping_interface()
-# Step 4: Export Interface
+# Step 5: Export Interface
 elif st.session_state.mapping_step and st.session_state.export_step:
     render_export_interface()
 

@@ -6,6 +6,9 @@ from utils.data_processor import profile_data, detect_id_columns, detect_date_co
 def render_data_profiler():
     """
     Render the data profiling component.
+    
+    Returns:
+        bool: True if ready to proceed to the next step, False otherwise
     """
     st.header("🕸️ Step 2: Parker's Spider-Sense Data Analysis")
     
@@ -114,14 +117,15 @@ def render_data_profiler():
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Option to continue to mapping with Spider-Man theme
+        # Option to continue to resource selection with Spider-Man theme
         st.markdown("---")
         st.markdown("""
         ### *"With great data comes great mapping responsibility!"*
         """)
-        if st.button("🕸️ Spin the Mapping Web 🕸️"):
-            st.session_state.mapping_step = True
-            st.rerun()
+        if st.button("🕸️ Continue to Resource Selection 🕸️"):
+            return True
+        
+        return False
     else:
         st.error("🕸️ My Spider-Sense can't find any data! Please upload a file first.")
         if st.button("🕷️ Swing Back to File Upload"):
