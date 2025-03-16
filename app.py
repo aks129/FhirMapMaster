@@ -36,19 +36,28 @@ st.title("🕸️ Parker: Your Friendly Healthcare Data Mapper 🕸️")
 st.markdown("""
 ### *"With great healthcare data comes great interoperability responsibility!"*
 
-**Parker** swings to the rescue, transforming your complex healthcare data into FHIR HL7 standards with superhero speed and precision! Powered by AI-assisted mapping suggestions, Parker helps you fight the chaos of non-standardized healthcare data.
+**Parker** swings to the rescue, transforming your complex healthcare data into multiple healthcare standards with superhero speed and precision! Powered by AI-assisted mapping suggestions, Parker helps you fight the chaos of non-standardized healthcare data.
 
-Upload your data file, select the appropriate FHIR standard, and let Parker do the heavy lifting!
+Upload your data file, choose your target healthcare standard (FHIR, HL7 v2, or C-CDA), and let Parker do the heavy lifting!
+
+**Supported Healthcare Standards:**
+- 🔬 **FHIR HL7** (US Core or CARIN BB Implementation Guides)
+- 📋 **HL7 v2 Messages** (ADT, ORM, ORU and more)
+- 📄 **C-CDA Documents** (Problems, Medications, Allergies and more)
 """)
 
 # Sidebar navigation and settings with Parker theme
 with st.sidebar:
     st.markdown("## 🕸️ Parker's Web Console 🕸️")
     
-    st.markdown("### 🕷️ Choose Your Super-Standard")
-    # FHIR Standard Selection
+    st.markdown("### 🕷️ Choose Your Super-Standards")
+    
+    # Add a note about export options
+    st.info("All healthcare standards (FHIR, HL7 v2, C-CDA) are available at export time - you can generate any format regardless of the starting standard.")
+    
+    # FHIR Standard Selection for initial mapping
     st.session_state.fhir_standard = st.radio(
-        "Select FHIR Implementation Guide:",
+        "Select FHIR Implementation Guide for Initial Mapping:",
         ["US Core (Clinical Data)", "CARIN BB (Payor Data)"]
     )
     
@@ -101,6 +110,7 @@ st.markdown("""
 <div style="text-align: center;">
     <p>🕸️ <b>Parker: Your Friendly Healthcare Data Mapper</b> 🕸️</p>
     <p><i>"Mapping healthcare data with great power and great responsibility!"</i></p>
-    <p>© 2025 Parker Industries | FHIR HL7 Mapping Tool</p>
+    <p>© 2025 Parker Industries | Multi-Format Healthcare Mapping Tool</p>
+    <p>Supports FHIR, HL7 v2, and C-CDA Formats</p>
 </div>
 """, unsafe_allow_html=True)

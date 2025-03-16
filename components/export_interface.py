@@ -205,7 +205,20 @@ def render_export_interface():
                 st.markdown("""
                 Parker has crafted your export with precision. Here's a preview of your web design:
                 """)
-                st.code(content, language="python" if format_key == "python" else "json")
+                
+                # Set the appropriate language for syntax highlighting
+                if "python" in format_key:
+                    language = "python"
+                elif "json" in format_key:
+                    language = "json"
+                elif "xml" in format_key or format_key == "ccda_sample":
+                    language = "xml"
+                elif format_key == "hl7v2_samples":
+                    language = "text"
+                else:
+                    language = "json"
+                    
+                st.code(content, language=language)
                 
                 # Provide download link with Spider-Man theme
                 st.markdown("### 🕸️ Launch Your Web")
