@@ -71,18 +71,19 @@ US_CORE_RESOURCES = {
             'reasonCode': 'Coded reason procedure performed'
         }
     },
-    'MedicationStatement': {
-        'description': 'A record of a medication that is being consumed by a patient',
+    'MedicationRequest': {
+        'description': 'An order or request for both supply of the medication and the instructions for administration',
         'fields': {
             'id': 'Logical id of this artifact',
             'identifier': 'Business identifier',
-            'status': 'active | completed | entered-in-error | intended | stopped | on-hold | unknown | not-taken',
-            'medication': 'What medication was taken',
+            'status': 'active | on-hold | cancelled | completed | entered-in-error | stopped | draft | unknown',
+            'intent': 'proposal | plan | order | original-order | reflex-order | filler-order | instance-order | option',
+            'medication': 'What medication was requested',
             'subject': 'Reference to the patient',
-            'effectiveDateTime': 'The date/time or interval when the medication was taken',
-            'effectivePeriod': 'The date/time or interval when the medication was taken',
-            'dateAsserted': 'When the statement was asserted?',
-            'dosage': 'Details of how medication was taken'
+            'authoredOn': 'When request was initially authored',
+            'requester': 'Who/What requested the medication',
+            'dosageInstruction': 'How the medication should be taken',
+            'dispenseRequest': 'Medication supply authorization'
         }
     }
 }

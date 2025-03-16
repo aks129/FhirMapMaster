@@ -41,6 +41,9 @@ def fetch_us_core_profiles():
     resources = [
         "us-core-patient", 
         "us-core-practitioner", 
+        "us-core-organization",
+        "us-core-practitionerrole",
+        "us-core-location",
         "us-core-observation",
         "us-core-condition", 
         "us-core-procedure", 
@@ -50,7 +53,13 @@ def fetch_us_core_profiles():
         "us-core-allergyintolerance",
         "us-core-immunization",
         "us-core-diagnosticreport-lab",
-        "us-core-diagnosticreport-note"
+        "us-core-diagnosticreport-note",
+        "us-core-documentreference",
+        "us-core-goal",
+        "us-core-careplan",
+        "us-core-implantable-device",
+        "us-core-provenance",
+        "us-core-servicerequest"
     ]
     
     try:
