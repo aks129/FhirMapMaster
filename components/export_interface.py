@@ -121,9 +121,10 @@ def render_export_interface():
             format_key = "python"
             st.markdown("""
             **🐍 Python Web-Shooter** provides a complete Python function that transforms your data into FHIR R4B resources.
+            Now enhanced with Parker's Pattern Matching Technology to intelligently handle complex type conversions and nested fields!
             Perfect for high-flying data pipelines in environments like Databricks or your ETL process.
             
-            *"This Python script packs the same punch as my web-shooters!"* - Parker
+            *"This Python script packs the same punch as my enhanced web-shooters with pattern-matching!"* - Parker
             """)
         elif "JSON" in export_format:
             format_key = "json"
@@ -153,9 +154,9 @@ def render_export_interface():
             with st.spinner("🕸️ Parker is weaving your export..."):
                 # Make sure we have a DataFrame for any export that needs it
                 df = None
-                df_required_formats = ["fml"]  # Only FML requires the dataframe now
+                df_required_formats = ["fml", "python"]  # FML and enhanced Python export require the dataframe
                 
-                if format_key in df_required_formats and "df" in st.session_state:
+                if "df" in st.session_state:
                     df = st.session_state.df
                 
                 # Generate the export content
