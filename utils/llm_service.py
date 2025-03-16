@@ -29,6 +29,7 @@ def initialize_anthropic_client():
 def analyze_unmapped_column(client, column_name, sample_values, fhir_standard, ig_version=""):
     """
     Analyze an unmapped column using Anthropic Claude to suggest a FHIR mapping.
+    Enhanced with CPCDS mapping knowledge for CARIN BB claims data.
     
     Args:
         client: Anthropic client instance
@@ -48,6 +49,58 @@ def analyze_unmapped_column(client, column_name, sample_values, fhir_standard, i
             "explanation": "Anthropic API key is not available."
         }
     
+    # Apply direct mapping logic first for CARIN BB claims data
+    if fhir_standard == "CARIN BB":
+        # Try to directly map based on CPCDS patterns before using the LLM
+        try:
+            # Import the CPCDS mapping module
+            from utils.cpcds_mapping import ensure_cpcds_mappings_loaded
+            
+            # Get the CPCDS mappings
+            mappings = ensure_cpcds_mappings_loaded()
+            
+            # Normalize column name for matching
+            col_lower = column_name.lower().replace(" ", "_").replace("-", "_")
+            
+            # Check if this column has a known mapping
+            if col_lower in mappings["column_to_resource"]:
+                resource = mappings["column_to_resource"][col_lower]
+                field = mappings["column_to_field"].get(col_lower, "id")  # Default to id if field mapping not found
+                
+                # Determine if this is a high-confidence match
+                is_high_confidence = any(term in col_lower for term in ["id", "identifier", "claim", "patient", "service"])
+                confidence = 0.95 if is_high_confidence else 0.8
+                
+                return {
+                    "suggested_resource": resource,
+                    "suggested_field": field,
+                    "confidence": confidence,
+                    "explanation": f"Direct match with CPCDS mapping pattern. The column '{column_name}' maps to {resource}.{field} according to CARIN BB CPCDS mapping standards."
+                }
+            
+            # Check for common pattern variations
+            if "claim" in col_lower and "id" in col_lower:
+                return {
+                    "suggested_resource": "ExplanationOfBenefit",
+                    "suggested_field": "identifier",
+                    "confidence": 0.9,
+                    "explanation": f"Column '{column_name}' matches the pattern for claim identifiers, which map to ExplanationOfBenefit.identifier in CARIN BB."
+                }
+            
+            if ("member" in col_lower or "patient" in col_lower) and "id" in col_lower:
+                return {
+                    "suggested_resource": "Patient",
+                    "suggested_field": "identifier",
+                    "confidence": 0.9,
+                    "explanation": f"Column '{column_name}' matches the pattern for patient identifiers, which map to Patient.identifier in CARIN BB."
+                }
+            
+            # Add more pattern recognition as needed
+            
+        except Exception as e:
+            print(f"Error in CPCDS direct mapping: {str(e)}")
+            # Continue to LLM-based approach if direct mapping fails
+    
     # Import resources to get available resources and fields
     from utils.fhir_mapper import get_fhir_resources
     
@@ -66,14 +119,42 @@ def analyze_unmapped_column(client, column_name, sample_values, fhir_standard, i
                 'fields': resource_data['fields']
             }
     
-    # Create the prompt with enhanced FHIR knowledge
+    # Get CPCDS mapping knowledge if this is CARIN BB
+    cpcds_guidance = ""
+    if fhir_standard == "CARIN BB":
+        # Import the CPCDS mapping module
+        try:
+            from utils.cpcds_mapping import get_cpcds_prompt_enhancement
+            cpcds_guidance = """
+## CARIN BB CPCDS Mapping Guidelines
+
+When mapping healthcare claims data, follow these patterns from the CARIN BB Implementation Guide's CPCDS mapping:
+
+- claim_id, claimid → ExplanationOfBenefit.identifier
+- patient_id, member_id → Patient.identifier
+- payer_id, payer → Coverage.payor
+- service_date, date_of_service → ExplanationOfBenefit.billablePeriod.start
+- provider_id, provider → ExplanationOfBenefit.provider
+
+The CPCDS mapping is the official CARIN BB Implementation Guide mapping from claims data.
+"""
+            # Get enhanced guidance if available
+            enhancement = get_cpcds_prompt_enhancement()
+            if enhancement and len(enhancement) > 100:  # Sanity check that we got real enhancement
+                cpcds_guidance = enhancement
+        except Exception as e:
+            print(f"Error getting CPCDS prompt enhancement: {str(e)}")
+    
+    # Create the prompt with enhanced FHIR knowledge and CPCDS guidance
     prompt = f"""
-You are a healthcare data expert specializing in FHIR HL7 data models. You're helping map healthcare data to the {fhir_standard} implementation guide.
+You are Parker, an expert in healthcare data mapping specializing in FHIR HL7 standards and particularly the {fhir_standard} Implementation Guide.
 
 I have a column in my healthcare dataset that needs mapping to FHIR:
 
 Column name: {column_name}
 Sample values: {sample_str}
+
+{cpcds_guidance}
 
 Here are the available FHIR resources and fields in the {fhir_standard} Implementation Guide:
 {json.dumps(resource_info, indent=2)}
@@ -95,30 +176,26 @@ Response:
             model="claude-3-5-sonnet-20241022",
             max_tokens=1000,
             temperature=0.0,
+            response_format={"type": "json_object"},  # Request JSON format directly
             messages=[
                 {"role": "user", "content": prompt}
             ]
         )
         
-        # Extract the JSON response
-        response_text = response.content[0].text
+        # Parse the JSON response
+        result = json.loads(response.content[0].text)
         
-        # Find and extract the JSON portion
-        json_start = response_text.find("{")
-        json_end = response_text.rfind("}") + 1
+        # Validate the result
+        if "suggested_resource" not in result:
+            result["suggested_resource"] = None
+        if "suggested_field" not in result:
+            result["suggested_field"] = None
+        if "confidence" not in result:
+            result["confidence"] = 0
+        if "explanation" not in result:
+            result["explanation"] = "No explanation provided."
         
-        if json_start >= 0 and json_end > json_start:
-            json_str = response_text[json_start:json_end]
-            result = json.loads(json_str)
-            return result
-        else:
-            # If JSON parsing fails, try to extract key information
-            return {
-                "suggested_resource": None,
-                "suggested_field": None,
-                "confidence": 0,
-                "explanation": "Could not parse LLM response into the expected format."
-            }
+        return result
     
     except Exception as e:
         return {

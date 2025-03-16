@@ -273,9 +273,31 @@ def handle_unmapped_columns(df, fhir_standard):
     if 'llm_suggestions' not in st.session_state:
         st.session_state.llm_suggestions = {}
     
+    # For CARIN BB, apply CPCDS mapping knowledge to enhance suggestions automatically
+    if fhir_standard == "CARIN BB" and unmapped_columns:
+        try:
+            # Import the CPCDS mapping utility
+            from utils.cpcds_mapping import enhance_mapping_suggestions
+            
+            # Enhance existing suggestions and pre-generate for common patterns
+            st.session_state.llm_suggestions = enhance_mapping_suggestions(
+                st.session_state.llm_suggestions, 
+                df.columns
+            )
+            
+            # Check if any new suggestions were added
+            new_suggestions = [col for col in df.columns 
+                              if col in st.session_state.llm_suggestions 
+                              and col in unmapped_columns]
+            
+            if new_suggestions:
+                st.success(f"🕸️ Parker's Spider-Sense automatically found {len(new_suggestions)} mappings from CPCDS patterns!")
+        except Exception as e:
+            print(f"Error applying CPCDS mappings: {str(e)}")
+    
     # Check if LLM client is available
     if not st.session_state.llm_client:
-        st.warning("🕸️ Parker's enhanced Spider-Sense (AI) requires an Anthropic API key. Without this, Parker can't provide automated mapping suggestions.")
+        st.warning("🕸️ Parker's enhanced Spider-Sense (AI) requires an Anthropic API key. Without this, Parker can't provide advanced mapping suggestions.")
         st.info("💡 You can still manually map these columns by selecting them in the appropriate resource tabs above.")
         
         # Add a button to set up the API key
