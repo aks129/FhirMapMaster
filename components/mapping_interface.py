@@ -153,6 +153,66 @@ def display_resource_mapping(resource_name, fhir_resources, df):
     Connect your data strands to these FHIR web anchors. Parker has detected the most likely connections!
     """)
     
+    # For CARIN BB standard, apply claims data mapping AI enhancement if we're showing ExplanationOfBenefit, Patient, Coverage, etc.
+    claims_related_resources = ["ExplanationOfBenefit", "Patient", "Coverage", "Practitioner", "Organization"]
+    if st.session_state.fhir_standard == "CARIN BB" and resource_name in claims_related_resources:
+        enhance_current_resource = st.checkbox(f"🕸️ Use Parker's AI Claims Matching for {resource_name}", 
+                                             value=True, 
+                                             help="Enable automatic claims data pattern matching")
+        if enhance_current_resource:
+            try:
+                # Apply claims data matching to all dataframe columns for this resource
+                with st.spinner(f"🕸️ Parker is analyzing claims data patterns for {resource_name}..."):
+                    from utils.claims_mapping_data import get_claims_mapping
+                    
+                    # Keep track of auto-mapped fields for this resource
+                    auto_mapped_count = 0
+                    auto_mappings = {}
+                    
+                    # Look for potential mappings in the resource's fields
+                    for field in resource_def.get('fields', {}).keys():
+                        # Skip fields that are already mapped with high confidence
+                        if field in suggested_mappings and suggested_mappings[field].get('confidence', 0) >= 0.75:
+                            continue
+                        
+                        # Try to find columns that could map to this field
+                        potential_matches = []
+                        for column in df.columns:
+                            mapping = get_claims_mapping(column)
+                            if mapping and mapping['resource'] == resource_name and mapping['field'] == field:
+                                potential_matches.append({
+                                    'column': column,
+                                    'confidence': mapping['confidence'],
+                                    'match_type': mapping['match_type']
+                                })
+                        
+                        # If we found potential matches, sort by confidence and add to auto-mappings
+                        if potential_matches:
+                            # Sort by confidence (highest first)
+                            potential_matches.sort(key=lambda x: x['confidence'], reverse=True)
+                            best_match = potential_matches[0]
+                            
+                            # Add to auto-mappings
+                            auto_mappings[field] = {
+                                'column': best_match['column'],
+                                'confidence': best_match['confidence'],
+                                'match_type': best_match['match_type'],
+                                'potential_matches': potential_matches
+                            }
+                            auto_mapped_count += 1
+                    
+                    # Show summary if we found auto-mappings
+                    if auto_mapped_count > 0:
+                        st.success(f"🕸️ Parker found {auto_mapped_count} additional field mappings for {resource_name}!")
+                        
+                        # Store these in the session state for display in the field mapping UI
+                        if 'auto_mappings' not in st.session_state:
+                            st.session_state.auto_mappings = {}
+                        st.session_state.auto_mappings[resource_name] = auto_mappings
+                    
+            except Exception as e:
+                st.warning(f"Error applying claims mapping: {str(e)}")
+    
     # Get all available columns in the dataframe
     all_columns = list(df.columns)
     
@@ -193,12 +253,69 @@ def display_resource_mapping(resource_name, fhir_resources, df):
                     st.warning(f"Column '{current_column}' not found in current dataset.")
                     current_column = None
                 
-                selected_column = st.selectbox(
+                # Check if we have AI-suggested mappings for this field
+                if (hasattr(st.session_state, 'auto_mappings') and 
+                    resource_name in st.session_state.auto_mappings and 
+                    field in st.session_state.auto_mappings[resource_name]):
+                    
+                    auto_mapping = st.session_state.auto_mappings[resource_name][field]
+                    best_match_column = auto_mapping['column']
+                    
+                    # If we don't already have a mapping, use the AI-suggested one as default
+                    if current_column is None and best_match_column in all_columns:
+                        default_index = all_columns.index(best_match_column) + 1
+                        
+                        # Add an info message about the AI-suggested mapping
+                        confidence = auto_mapping['confidence']
+                        match_type = auto_mapping['match_type']
+                        
+                        # Choose appropriate icon based on confidence
+                        if confidence >= 0.8:
+                            confidence_icon = "🟢"
+                        elif confidence >= 0.6:
+                            confidence_icon = "🟡"
+                        else:
+                            confidence_icon = "🟠"
+                            
+                        st.info(f"{confidence_icon} Parker suggests: **{best_match_column}** (Confidence: {confidence:.2f}, Type: {match_type})")
+                    
+                    # Display multiple potential matches if available
+                    if len(auto_mapping.get('potential_matches', [])) > 1:
+                        with st.expander("See other potential matches"):
+                            for match in auto_mapping['potential_matches'][1:]:  # Skip the best match
+                                st.write(f"• **{match['column']}** (Confidence: {match['confidence']:.2f}, Type: {match['match_type']})")
+                
+                # Display the select box with special formatting for AI-suggested options
+                column_options = ["-- Not Mapped --"]
+                
+                # Check if we have AI suggestions to highlight
+                ai_suggestions = set()
+                if (hasattr(st.session_state, 'auto_mappings') and 
+                    resource_name in st.session_state.auto_mappings and 
+                    field in st.session_state.auto_mappings[resource_name]):
+                    
+                    # Get all the suggested columns for this field
+                    for match in st.session_state.auto_mappings[resource_name][field].get('potential_matches', []):
+                        ai_suggestions.add(match['column'])
+                
+                # Add each column with special formatting for AI suggestions
+                for column in all_columns:
+                    if column in ai_suggestions:
+                        column_options.append(f"🕸️ {column}")  # Add spider web icon for AI suggestions
+                    else:
+                        column_options.append(column)
+                
+                selected_column_display = st.selectbox(
                     "Map to Column",
-                    ["-- Not Mapped --"] + all_columns,
+                    column_options,
                     index=default_index,
                     key=f"{resource_name}_{field}_column"
                 )
+                
+                # Clean up the selected column (remove the spider web icon if present)
+                selected_column = selected_column_display
+                if selected_column.startswith("🕸️ "):
+                    selected_column = selected_column[3:]  # Remove the spider web icon and space
                 
                 # Update mapping when the user makes a selection
                 if selected_column != "-- Not Mapped --":
