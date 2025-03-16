@@ -203,12 +203,16 @@ def render_mapping_interface():
         # Add tabs for selected resources
         # Make sure resource_names is not empty to avoid Streamlit error
         if resource_names:
-            resource_tabs = st.tabs(resource_names)
-            
-            # Process each resource tab
-            for i, resource_name in enumerate(resource_names):
-                with resource_tabs[i]:
-                    display_resource_mapping(resource_name, fhir_resources, df)
+            # Create a container for tabs to avoid layout issues
+            with st.container():
+                # Create tabs based on resource names
+                resource_tabs = st.tabs([f"🕸️ {name}" for name in resource_names])
+                
+                # Process each resource tab
+                for i, resource_name in enumerate(resource_names):
+                    with resource_tabs[i]:
+                        # Display the resource mapping interface for this resource
+                        display_resource_mapping(resource_name, fhir_resources, df)
         else:
             st.warning("No resources selected for mapping. Please select resources in Step 2.")
         
@@ -440,44 +444,46 @@ def display_resource_mapping(resource_name, fhir_resources, df):
     processed_fields = set()  # Track fields we've already processed
     
     # First, show parent fields with FHIR datatypes and their component fields
-    for field, field_info in composite_fields.items():
-        datatype = field_info.get('datatype', '')
-        components = field_info.get('components', [])
-        description = resource_def.get('fields', {}).get(field, 'Complex field')
-        
-        # Create a container for this parent field
-        with st.container():
-            st.markdown(f"""
-            <div style='background-color: #f0f8ff; padding: 10px; border-radius: 5px; margin: 10px 0;'>
-                <h4 style='margin: 0;'>🧩 {field} ({datatype})</h4>
-                <p style='margin: 5px 0 0 0; font-size: 0.9em;'>{description}</p>
-            </div>
-            """, unsafe_allow_html=True)
+    if composite_fields:
+        for field, field_info in composite_fields.items():
+            datatype = field_info.get('datatype', '')
+            components = field_info.get('components', [])
+            description = resource_def.get('fields', {}).get(field, 'Complex field')
             
-            # Check if this parent field has a composite mapping
-            has_composite_mapping = False
-            if (resource_name in st.session_state.finalized_mappings and 
-                field in st.session_state.finalized_mappings[resource_name] and
-                st.session_state.finalized_mappings[resource_name][field].get('match_type') == 'fhir_datatype_composite'):
-                has_composite_mapping = True
-                
-                parent_mapping = st.session_state.finalized_mappings[resource_name][field]
-                datatype = parent_mapping.get('datatype', field_info.get('datatype', ''))
-                
-                # Show composite field overview
+            # Create a container for this parent field with a distinctive background
+            with st.container():
                 st.markdown(f"""
-                <div style='padding-left: 20px;'>
-                    <p>This is a <b>composite {datatype}</b> field with the following components:</p>
+                <div style='background-color: #f0f8ff; padding: 10px; border-radius: 5px; margin: 10px 0;'>
+                    <h4 style='margin: 0;'>🧩 {field} ({datatype})</h4>
+                    <p style='margin: 5px 0 0 0; font-size: 0.9em;'>{description}</p>
                 </div>
                 """, unsafe_allow_html=True)
-            
-            # Show each component field
-            for component in composite_fields[field]['components']:
-                # Add to processed fields set
-                processed_fields.add(component)
                 
-                with st.container():
-                    col1, col2, col3 = st.columns([3, 2, 1])
+                # Check if this parent field has a composite mapping
+                has_composite_mapping = False
+                if (resource_name in st.session_state.finalized_mappings and 
+                    field in st.session_state.finalized_mappings[resource_name] and
+                    st.session_state.finalized_mappings[resource_name][field].get('match_type') == 'fhir_datatype_composite'):
+                    has_composite_mapping = True
+                    
+                    parent_mapping = st.session_state.finalized_mappings[resource_name][field]
+                    datatype = parent_mapping.get('datatype', field_info.get('datatype', ''))
+                    
+                    # Show composite field overview with styling
+                    st.markdown(f"""
+                    <div style='padding-left: 20px;'>
+                        <p>This is a <b>composite {datatype}</b> field with the following components:</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Show each component field
+                for component in components:
+                    # Add to processed fields set to avoid duplicate display
+                    processed_fields.add(component)
+                    
+                    # Create a structured layout for each component
+                    with st.container():
+                        col1, col2, col3 = st.columns([3, 2, 1])
                     
                     with col1:
                         # Add indentation to indicate this is a component field
