@@ -26,6 +26,10 @@ if 'mapping_step' not in st.session_state:
     st.session_state.mapping_step = False
 if 'export_step' not in st.session_state:
     st.session_state.export_step = False
+if 'show_api_key_setup' not in st.session_state:
+    st.session_state.show_api_key_setup = False
+if 'llm_suggestions' not in st.session_state:
+    st.session_state.llm_suggestions = {}
 
 # App title and description with Parker branding
 st.title("🕸️ Parker: Your Friendly Healthcare Data Mapper 🕸️")
@@ -72,6 +76,9 @@ with st.sidebar:
         st.session_state.mappings = {}
         st.session_state.mapping_step = False
         st.session_state.export_step = False
+        st.session_state.llm_suggestions = {}
+        st.session_state.show_api_key_setup = False
+        # Keep the llm_client intact as it's tied to the API key
         st.rerun()
 
 # Main workflow

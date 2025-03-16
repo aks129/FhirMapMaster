@@ -167,20 +167,38 @@ def analyze_complex_mapping(client, mapping_data, fhir_standard):
     if client is None:
         return "Anthropic API key is not available."
     
-    # Create the prompt with more detailed context
+    # Import resources to get available resources and fields
+    from utils.fhir_mapper import get_fhir_resources
+    
+    # Get the FHIR resources for this standard
+    resources = get_fhir_resources(fhir_standard)
+    
+    # Create a structured representation of the available resources and fields
+    resource_info = {}
+    for resource_name, resource_data in resources.items():
+        if 'fields' in resource_data:
+            resource_info[resource_name] = {
+                'description': resource_data.get('description', f'{resource_name} resource'),
+                'fields': resource_data['fields']
+            }
+    
+    # Create the prompt with enhanced FHIR knowledge
     prompt = f"""
 You are a healthcare data expert specializing in FHIR HL7 data models. You're helping with a complex data mapping scenario for the {fhir_standard} implementation guide.
 
 Here's the mapping situation:
 {json.dumps(mapping_data, indent=2)}
 
+Here are the available FHIR resources and fields in the {fhir_standard} Implementation Guide:
+{json.dumps(resource_info, indent=2)}
+
 Please analyze this mapping situation and provide:
-1. A detailed assessment of the current mapping approach
+1. A detailed assessment of the current mapping approach against the Implementation Guide definitions
 2. Any potential issues or inconsistencies you see
 3. Specific recommendations to improve the mapping
 4. Alternative mapping approaches if applicable
 
-Focus on healthcare data best practices and FHIR compliance.
+Focus on healthcare data best practices and FHIR compliance according to the official Implementation Guide.
 """
     
     try:

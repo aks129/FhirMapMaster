@@ -252,40 +252,105 @@ def handle_unmapped_columns(df, fhir_standard):
     if 'llm_suggestions' not in st.session_state:
         st.session_state.llm_suggestions = {}
     
-    # Handle each unmapped column
-    for column in unmapped_columns:
-        with st.expander(f"🧵 {column}"):
-            st.dataframe(df[column].head(5), use_container_width=True)
+    # Check if LLM client is available
+    if not st.session_state.llm_client:
+        st.warning("🕸️ Parker's enhanced Spider-Sense (AI) requires an Anthropic API key. Without this, Parker can't provide automated mapping suggestions.")
+        st.info("💡 You can still manually map these columns by selecting them in the appropriate resource tabs above.")
+        
+        # Add a button to set up the API key
+        if st.button("🔑 Set Up Anthropic API Key"):
+            st.session_state.show_api_key_setup = True
+            st.rerun()
             
-            # Check if we already have a suggestion for this column
-            if column in st.session_state.llm_suggestions:
-                display_llm_suggestion(column, fhir_standard)
-            else:
-                # Button to get LLM suggestion with Spider-Man theme
-                if st.button(f"🕷️ Activate Spider-Sense for {column}", key=f"llm_btn_{column}"):
-                    with st.spinner(f"🕸️ Parker is analyzing '{column}' with enhanced Spider-Sense..."):
-                        # Get LLM suggestion for this column
-                        sample_values = df[column].dropna().unique().tolist()[:10]
-                        suggestion = {}
+        # Show API key setup if requested
+        if st.session_state.get('show_api_key_setup', False):
+            with st.expander("Enter Anthropic API Key", expanded=True):
+                st.markdown("""
+                To use Parker's enhanced Spider-Sense for automatic mapping suggestions, you need an Anthropic API key.
+                
+                1. Sign up at [console.anthropic.com](https://console.anthropic.com/)
+                2. Create an API key in your account settings
+                3. Enter it below
+                """)
+                
+                api_key = st.text_input("Anthropic API Key", type="password")
+                if st.button("Save API Key"):
+                    if api_key.strip():
+                        # Use environment variables in a secure way
+                        import os
+                        os.environ["ANTHROPIC_API_KEY"] = api_key
+                        
+                        # Reinitialize the client
+                        from utils.llm_service import initialize_anthropic_client
+                        st.session_state.llm_client = initialize_anthropic_client()
                         
                         if st.session_state.llm_client:
-                            from utils.llm_service import analyze_unmapped_column
-                            suggestion = analyze_unmapped_column(
-                                st.session_state.llm_client,
-                                column,
-                                sample_values,
-                                fhir_standard
-                            )
+                            st.success("🎉 Parker's enhanced Spider-Sense is now active!")
+                            st.session_state.show_api_key_setup = False
+                            st.rerun()
                         else:
-                            suggestion = {
-                                "suggested_resource": None,
-                                "suggested_field": None,
-                                "confidence": 0,
-                                "explanation": "LLM service is not available. Please check your API key configuration."
-                            }
-                        
-                        st.session_state.llm_suggestions[column] = suggestion
-                        st.rerun()
+                            st.error("❌ Invalid API key. Please check and try again.")
+    
+    # Only show column-specific suggestions if we have LLM client
+    if st.session_state.llm_client:
+        # Handle each unmapped column
+        for column in unmapped_columns:
+            with st.expander(f"🧵 {column}"):
+                st.dataframe(df[column].head(5), use_container_width=True)
+                
+                # Check if we already have a suggestion for this column
+                if column in st.session_state.llm_suggestions:
+                    display_llm_suggestion(column, fhir_standard)
+                else:
+                    # Button to get LLM suggestion with Spider-Man theme
+                    if st.button(f"🕷️ Activate Spider-Sense for {column}", key=f"llm_btn_{column}"):
+                        with st.spinner(f"🕸️ Parker is analyzing '{column}' with enhanced Spider-Sense..."):
+                            try:
+                                # Get LLM suggestion for this column
+                                sample_values = df[column].dropna().unique().tolist()[:10]
+                                
+                                from utils.llm_service import analyze_unmapped_column
+                                suggestion = analyze_unmapped_column(
+                                    st.session_state.llm_client,
+                                    column,
+                                    sample_values,
+                                    fhir_standard
+                                )
+                                
+                                st.session_state.llm_suggestions[column] = suggestion
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error getting suggestion: {str(e)}")
+                                st.session_state.llm_suggestions[column] = {
+                                    "suggested_resource": None,
+                                    "suggested_field": None,
+                                    "confidence": 0,
+                                    "explanation": f"Error getting LLM suggestion: {str(e)}"
+                                }
+    else:
+        # Show basic mapping instructions without LLM
+        st.markdown("""
+        ### Manual Mapping Instructions
+        
+        Since Parker's AI Spider-Sense is not available, you'll need to manually map these columns:
+        
+        1. Look at the sample values to understand what kind of data each column contains
+        2. Go to the resource tabs above (Patient, Observation, etc.)
+        3. Select the appropriate column from the dropdown for each FHIR field
+        
+        **Need help identifying which resource to use?**
+        - **Patient**: Use for demographics and identifiers
+        - **Observation**: Use for measurements, vital signs, lab results
+        - **Condition**: Use for diagnoses, problems, and health conditions
+        - **Procedure**: Use for treatments or interventions performed
+        - **Coverage**: Use for insurance information (CARIN BB)
+        - **ExplanationOfBenefit**: Use for claims data (CARIN BB)
+        """)
+        
+        # Show unmapped columns with sample data only
+        for column in unmapped_columns:
+            with st.expander(f"Sample data for: {column}"):
+                st.dataframe(df[column].head(5), use_container_width=True)
 
 def display_llm_suggestion(column, fhir_standard):
     """
