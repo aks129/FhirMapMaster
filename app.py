@@ -176,6 +176,9 @@ elif st.session_state.df is not None and st.session_state.resource_selection_ste
     # Move to mapping when resource selection is complete
     if render_resource_selector():
         st.session_state.mapping_step = True
+        # Convert selected_resources from dictionary to list for the mapping interface
+        if 'selected_resources' in st.session_state and isinstance(st.session_state.selected_resources, dict):
+            st.session_state.selected_resources = list(st.session_state.selected_resources.keys())
         st.rerun()
 # Step 4: Mapping Interface
 elif st.session_state.df is not None and st.session_state.mapping_step and not st.session_state.export_step:
