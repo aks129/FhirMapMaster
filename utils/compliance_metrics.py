@@ -4,6 +4,7 @@ FHIR Profile Compliance Metrics Utility
 This module provides functionality to assess mapping compliance with FHIR profiles
 based on cardinality and must-support flags.
 """
+import json
 import streamlit as st
 
 def analyze_mapping_compliance(mappings, fhir_resources, fhir_standard):
@@ -20,80 +21,89 @@ def analyze_mapping_compliance(mappings, fhir_resources, fhir_standard):
     """
     compliance_metrics = {}
     
-    for resource_name, resource_mappings in mappings.items():
-        # Get profile information for this resource
-        resource_def = fhir_resources.get(resource_name, {})
+    for resource_type, resource_mappings in mappings.items():
+        if resource_type not in fhir_resources:
+            continue
+            
+        # Get the resource definition
+        resource_def = fhir_resources[resource_type]
         
-        # Initialize counters
+        # Track metrics for this resource
         required_fields = []
-        required_mapped = []
         must_support_fields = []
-        must_support_mapped = []
         optional_fields = []
-        optional_mapped = []
         
-        # Extract fields info from resource definition
-        for field_path, field_info in resource_def.get('fields', {}).items():
-            # Skip if no cardinality info (shouldn't happen with proper IG profiles)
-            if isinstance(field_info, str) or 'cardinality' not in field_info:
+        # Get mapped fields
+        mapped_fields = set(resource_mappings.keys())
+        
+        # Categorize fields
+        for field_name, field_data in resource_def.get("fields", {}).items():
+            # Skip internal fields or complex nested objects
+            if field_name.startswith("_") or isinstance(field_data, dict) and field_data.get("isArray", False):
                 continue
                 
-            cardinality = field_info.get('cardinality', '0..1')
-            must_support = field_info.get('mustSupport', False)
-            
-            # Check if field is required (min cardinality > 0)
-            min_cardinality = int(cardinality.split('..')[0])
-            is_required = min_cardinality > 0
-            
-            if is_required:
-                required_fields.append(field_path)
-                if any(mapping.get('target', '').startswith(field_path) for mapping in resource_mappings.values()):
-                    required_mapped.append(field_path)
-            elif must_support:
-                must_support_fields.append(field_path)
-                if any(mapping.get('target', '').startswith(field_path) for mapping in resource_mappings.values()):
-                    must_support_mapped.append(field_path)
+            if isinstance(field_data, dict):
+                # Check if required based on cardinality
+                min_value = field_data.get("min", 0)
+                if min_value > 0:
+                    required_fields.append(field_name)
+                elif field_data.get("mustSupport", False):
+                    must_support_fields.append(field_name)
+                else:
+                    optional_fields.append(field_name)
             else:
-                optional_fields.append(field_path)
-                if any(mapping.get('target', '').startswith(field_path) for mapping in resource_mappings.values()):
-                    optional_mapped.append(field_path)
+                # Default to optional for simple string descriptions
+                optional_fields.append(field_name)
+        
+        # Calculate compliance metrics
+        required_mapped = [f for f in required_fields if f in mapped_fields]
+        must_support_mapped = [f for f in must_support_fields if f in mapped_fields]
+        optional_mapped = [f for f in optional_fields if f in mapped_fields]
         
         # Calculate percentages
-        required_pct = (len(required_mapped) / max(len(required_fields), 1)) * 100
-        must_support_pct = (len(must_support_mapped) / max(len(must_support_fields), 1)) * 100
-        optional_pct = (len(optional_mapped) / max(len(optional_fields), 1)) * 100
+        required_pct = (len(required_mapped) / len(required_fields)) * 100 if required_fields else 100
+        must_support_pct = (len(must_support_mapped) / len(must_support_fields)) * 100 if must_support_fields else 100
+        optional_pct = (len(optional_mapped) / len(optional_fields)) * 100 if optional_fields else 100
         
-        # Determine overall status
+        # Calculate overall completeness percentage with weighting
+        # Required fields are weighted at 60%, must-support at 30%, optional at 10%
+        overall_pct = (
+            (required_pct * 0.6) + 
+            (must_support_pct * 0.3) + 
+            (optional_pct * 0.1)
+        )
+        
+        # Determine status based on compliance
         if required_pct < 100:
-            status = "🔴"  # Red - missing required fields
+            status = "red"  # Missing required fields
         elif must_support_pct < 100:
-            status = "🟡"  # Yellow - all required but missing some must-support
+            status = "yellow"  # Missing must-support fields
         else:
-            status = "🟢"  # Green - all required and must-support fields mapped
+            status = "green"  # All required and must-support fields mapped
         
         # Store metrics
-        compliance_metrics[resource_name] = {
-            'status': status,
-            'required': {
-                'mapped': len(required_mapped),
-                'total': len(required_fields),
-                'percentage': required_pct,
-                'fields': required_fields,
-                'mapped_fields': required_mapped
+        compliance_metrics[resource_type] = {
+            "required": {
+                "total": len(required_fields),
+                "mapped": len(required_mapped),
+                "percentage": required_pct,
+                "missing": sorted(set(required_fields) - mapped_fields)
             },
-            'must_support': {
-                'mapped': len(must_support_mapped),
-                'total': len(must_support_fields),
-                'percentage': must_support_pct,
-                'fields': must_support_fields,
-                'mapped_fields': must_support_mapped
+            "must_support": {
+                "total": len(must_support_fields),
+                "mapped": len(must_support_mapped),
+                "percentage": must_support_pct,
+                "missing": sorted(set(must_support_fields) - mapped_fields)
             },
-            'optional': {
-                'mapped': len(optional_mapped),
-                'total': len(optional_fields),
-                'percentage': optional_pct,
-                'fields': optional_fields,
-                'mapped_fields': optional_mapped
+            "optional": {
+                "total": len(optional_fields),
+                "mapped": len(optional_mapped),
+                "percentage": optional_pct,
+                "missing": sorted(set(optional_fields) - mapped_fields)[:5]  # Limit to top 5 missing optional fields
+            },
+            "overall": {
+                "percentage": overall_pct,
+                "status": status
             }
         }
     
@@ -110,24 +120,22 @@ def get_overall_compliance_status(compliance_metrics):
         tuple: (status_emoji, status_description)
     """
     if not compliance_metrics:
-        return "⚠️", "No mappings available"
+        return "🔄", "No resources mapped yet"
     
-    all_required_satisfied = all(
-        metrics['required']['percentage'] == 100 
-        for metrics in compliance_metrics.values()
-    )
+    # Count resources by status
+    status_counts = {"red": 0, "yellow": 0, "green": 0}
+    for resource, metrics in compliance_metrics.items():
+        status = metrics.get("overall", {}).get("status", "")
+        if status in status_counts:
+            status_counts[status] += 1
     
-    all_must_support_satisfied = all(
-        metrics['must_support']['percentage'] == 100 
-        for metrics in compliance_metrics.values()
-    )
-    
-    if not all_required_satisfied:
-        return "🔴", "Required fields missing (Cardinality 1..x)"
-    elif not all_must_support_satisfied:
-        return "🟡", "All required fields satisfied, some must-support fields missing"
+    # Determine overall status
+    if status_counts["red"] > 0:
+        return "🟥", "Missing required fields"
+    elif status_counts["yellow"] > 0:
+        return "🟨", "Missing must-support fields"
     else:
-        return "🟢", "All required and must-support fields satisfied"
+        return "🟩", "Compliant with profile"
 
 def render_compliance_metrics(compliance_metrics):
     """
@@ -136,39 +144,56 @@ def render_compliance_metrics(compliance_metrics):
     Args:
         compliance_metrics: Dict of compliance metrics per resource
     """
-    overall_status, status_desc = get_overall_compliance_status(compliance_metrics)
+    overall_status_emoji, overall_status_desc = get_overall_compliance_status(compliance_metrics)
     
-    st.subheader(f"{overall_status} Profile Compliance Metrics")
-    st.markdown(f"**Overall Status: {status_desc}**")
+    st.markdown("### 🕸️ Mapping Compliance Metrics")
+    st.write(f"**Overall Status:** {overall_status_emoji} {overall_status_desc}")
     
-    for resource_name, metrics in compliance_metrics.items():
-        with st.expander(f"{metrics['status']} {resource_name} Compliance"):
+    for resource, metrics in compliance_metrics.items():
+        # Skip resources with no fields
+        if metrics["required"]["total"] == 0 and metrics["must_support"]["total"] == 0:
+            continue
+            
+        # Add expandable section for each resource
+        with st.expander(f"{resource} - {metrics['overall']['percentage']:.1f}% Complete"):
+            # Status indicators
+            status_indicators = {
+                "red": "🟥", 
+                "yellow": "🟨", 
+                "green": "🟩"
+            }
+            status = metrics["overall"]["status"]
+            
+            # Create columns for metrics
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.metric(
-                    "Required Fields", 
-                    f"{metrics['required']['mapped']}/{metrics['required']['total']}",
-                    f"{metrics['required']['percentage']:.1f}%"
-                )
-                if metrics['required']['percentage'] < 100:
-                    missing = set(metrics['required']['fields']) - set(metrics['required']['mapped_fields'])
-                    st.markdown(f"**Missing required:** {', '.join(missing)}")
+                req_status = "🟩" if metrics["required"]["percentage"] == 100 else "🟥"
+                st.markdown(f"**Required Fields:** {req_status}")
+                st.write(f"{metrics['required']['mapped']}/{metrics['required']['total']} " + 
+                         f"({metrics['required']['percentage']:.1f}%)")
+                if metrics['required']['missing']:
+                    st.markdown("**Missing:**")
+                    for field in metrics['required']['missing']:
+                        st.markdown(f"- {field}")
             
             with col2:
-                st.metric(
-                    "Must-Support Fields", 
-                    f"{metrics['must_support']['mapped']}/{metrics['must_support']['total']}",
-                    f"{metrics['must_support']['percentage']:.1f}%"
-                )
-                if metrics['must_support']['percentage'] < 100:
-                    missing = set(metrics['must_support']['fields']) - set(metrics['must_support']['mapped_fields'])
-                    if len(missing) <= 3:  # Only show if not too many
-                        st.markdown(f"**Missing must-support:** {', '.join(missing)}")
+                ms_status = "🟩" if metrics["must_support"]["percentage"] == 100 else "🟨"
+                st.markdown(f"**Must Support:** {ms_status}")
+                st.write(f"{metrics['must_support']['mapped']}/{metrics['must_support']['total']} " + 
+                         f"({metrics['must_support']['percentage']:.1f}%)")
+                if metrics['must_support']['missing']:
+                    st.markdown("**Missing:**")
+                    for field in metrics['must_support']['missing']:
+                        st.markdown(f"- {field}")
             
             with col3:
-                st.metric(
-                    "Optional Fields", 
-                    f"{metrics['optional']['mapped']}/{metrics['optional']['total']}",
-                    f"{metrics['optional']['percentage']:.1f}%"
-                )
+                opt_status = "🟩" if metrics["optional"]["percentage"] >= 50 else "⬜️"
+                st.markdown(f"**Optional Fields:** {opt_status}")
+                st.write(f"{metrics['optional']['mapped']}/{metrics['optional']['total']} " + 
+                         f"({metrics['optional']['percentage']:.1f}%)")
+                # Only show missing optional fields if below a certain threshold
+                if metrics['optional']['percentage'] < 50 and metrics['optional']['missing']:
+                    st.markdown("**Top Missing:**")
+                    for field in metrics['optional']['missing'][:3]:  # Show only top 3
+                        st.markdown(f"- {field}")

@@ -77,9 +77,24 @@ def fetch_us_core_profiles():
                         field = path.split(".")[-1]
                         
                         # Get description or definition
-                        definition = element.get("definition", element.get("short", "No description"))
+                        description = element.get("definition", element.get("short", "No description"))
                         
-                        fields[field] = definition
+                        # Extract cardinality
+                        min_occurs = element.get("min", 0)
+                        max_occurs = element.get("max", "*")
+                        cardinality = f"{min_occurs}..{max_occurs}"
+                        
+                        # Extract must-support flag
+                        must_support = element.get("mustSupport", False)
+                        
+                        # Store as a dictionary with all metadata
+                        fields[field] = {
+                            "description": description,
+                            "cardinality": cardinality,
+                            "min": min_occurs,
+                            "max": max_occurs,
+                            "mustSupport": must_support
+                        }
                 
                 # Add to our profiles dictionary
                 if resource_type not in us_core_profiles:
@@ -166,9 +181,24 @@ def fetch_carin_bb_profiles():
                         field = path.split(".")[-1]
                         
                         # Get description or definition
-                        definition = element.get("definition", element.get("short", "No description"))
+                        description = element.get("definition", element.get("short", "No description"))
                         
-                        fields[field] = definition
+                        # Extract cardinality
+                        min_occurs = element.get("min", 0)
+                        max_occurs = element.get("max", "*")
+                        cardinality = f"{min_occurs}..{max_occurs}"
+                        
+                        # Extract must-support flag
+                        must_support = element.get("mustSupport", False)
+                        
+                        # Store as a dictionary with all metadata
+                        fields[field] = {
+                            "description": description,
+                            "cardinality": cardinality,
+                            "min": min_occurs,
+                            "max": max_occurs,
+                            "mustSupport": must_support
+                        }
                 
                 # Add to our profiles dictionary
                 if resource_type not in carin_bb_profiles:
