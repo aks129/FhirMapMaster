@@ -97,6 +97,9 @@ def render_mapping_interface():
         if st.session_state.finalized_mappings:
             # Display a summary of the finalized mappings
             mapping_summary = []
+            
+            # Create a set of mapped source columns for quick lookup
+            mapped_columns = set()
             for resource, fields in st.session_state.finalized_mappings.items():
                 for field, mapping_info in fields.items():
                     mapping_summary.append({
@@ -105,10 +108,53 @@ def render_mapping_interface():
                         "Source Column": mapping_info['column'],
                         "Spider-Sense Confidence": f"{mapping_info['confidence']:.2f}"
                     })
+                    mapped_columns.add(mapping_info['column'])
+            
+            # Add unmapped columns to the summary
+            unmapped = []
+            for col in df.columns:
+                if col not in mapped_columns:
+                    unmapped.append({
+                        "FHIR Resource": "⚠️ Not Mapped",
+                        "FHIR Field": "⚠️ Not Mapped",
+                        "Source Column": col,
+                        "Spider-Sense Confidence": "N/A"
+                    })
+            
+            # Combine mapped and unmapped for complete view
+            mapping_summary.extend(unmapped)
             
             if mapping_summary:
                 st.markdown("### 🕸️ Your Data Web is Ready!")
-                st.dataframe(pd.DataFrame(mapping_summary), use_container_width=True)
+                
+                # Create a dataframe from the mapping summary
+                mapping_df = pd.DataFrame(mapping_summary)
+                
+                # Add tabs to show different views
+                tab1, tab2 = st.tabs(["All Source Columns", "Mapped Fields Only"])
+                
+                with tab1:
+                    st.markdown(f"**Showing all {len(mapping_df)} source columns with their mappings**")
+                    st.dataframe(mapping_df, use_container_width=True)
+                    
+                    # Show summary statistics
+                    mapped_count = len(mapped_columns)
+                    total_count = len(df.columns)
+                    mapping_percentage = (mapped_count / total_count) * 100
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Total Columns", total_count)
+                    with col2:
+                        st.metric("Mapped Columns", mapped_count)
+                    with col3:
+                        st.metric("Mapping Coverage", f"{mapping_percentage:.1f}%")
+                
+                with tab2:
+                    # Filter to show only mapped fields
+                    mapped_only = mapping_df[mapping_df["FHIR Resource"] != "⚠️ Not Mapped"]
+                    st.markdown(f"**Showing {len(mapped_only)} mapped fields across {len(st.session_state.finalized_mappings)} resources**")
+                    st.dataframe(mapped_only, use_container_width=True)
             else:
                 st.info("🕸️ Parker hasn't spun any web connections yet. Start mapping above!")
         else:
@@ -418,11 +464,40 @@ def handle_unmapped_columns(df, fhir_standard):
             if new_suggestions:
                 st.success(f"🕸️ Parker's Spider-Sense automatically found {len(new_suggestions)} mappings from common claims data patterns!")
                 
+                # Auto-apply high confidence mappings
+                auto_applied_count = 0
+                with st.spinner("🕸️ Parker is automatically applying high-confidence mappings..."):
+                    for col in new_suggestions:
+                        suggestion = st.session_state.llm_suggestions[col]
+                        
+                        # Only auto-apply if the confidence is high and resource exists in our finalized mappings
+                        if suggestion['confidence'] >= 0.75 and suggestion['suggested_resource'] in st.session_state.selected_resources:
+                            resource = suggestion['suggested_resource']
+                            field = suggestion['suggested_field']
+                            
+                            # Ensure the resource exists in finalized mappings
+                            if resource not in st.session_state.finalized_mappings:
+                                st.session_state.finalized_mappings[resource] = {}
+                                
+                            # Add this mapping
+                            st.session_state.finalized_mappings[resource][field] = {
+                                'column': col,
+                                'confidence': suggestion['confidence']
+                            }
+                            auto_applied_count += 1
+                
+                if auto_applied_count > 0:
+                    st.success(f"🕸️ Parker automatically applied {auto_applied_count} high-confidence mappings!")
+                
                 # Show the auto-detected mappings in an expander
                 with st.expander("View Auto-Detected Claim Field Mappings"):
                     for col in new_suggestions:
                         suggestion = st.session_state.llm_suggestions[col]
-                        st.markdown(f"**{col}** → {suggestion['suggested_resource']}.{suggestion['suggested_field']} (Confidence: {suggestion['confidence']:.2f})")
+                        confidence_icon = "🟢" if suggestion['confidence'] >= 0.8 else "🟡" if suggestion['confidence'] >= 0.6 else "🟠"
+                        auto_applied = ""
+                        if suggestion['confidence'] >= 0.75 and suggestion['suggested_resource'] in st.session_state.selected_resources:
+                            auto_applied = " (Auto-Applied)"
+                        st.markdown(f"{confidence_icon} **{col}** → {suggestion['suggested_resource']}.{suggestion['suggested_field']} (Confidence: {suggestion['confidence']:.2f}){auto_applied}")
                         st.caption(suggestion['explanation'])
                         st.divider()
         except Exception as e:
