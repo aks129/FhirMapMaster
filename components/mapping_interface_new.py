@@ -116,6 +116,9 @@ def render_mapping_interface():
         
     if 'mapping_tab' not in st.session_state:
         st.session_state.mapping_tab = 0
+        
+    if 'suggested_mappings' not in st.session_state:
+        st.session_state.suggested_mappings = {}
     
     # If we don't have a DataFrame at this point, return to file upload
     if 'df' not in st.session_state:
@@ -293,12 +296,18 @@ def render_resource_mapping(resource_name, fhir_resources, df):
     
     # Get suggested mappings for this resource
     resource_suggestions = {}
-    for column, suggestions in st.session_state.suggested_mappings.items():
-        for suggestion in suggestions:
-            if suggestion['resource'] == resource_name:
-                if column not in resource_suggestions:
-                    resource_suggestions[column] = []
-                resource_suggestions[column].append(suggestion)
+    
+    # Check if we have suggested mappings
+    if 'suggested_mappings' in st.session_state:
+        # Iterate through the suggested mappings
+        for column, suggestions in st.session_state.suggested_mappings.items():
+            # Make sure suggestions is a list
+            if isinstance(suggestions, list):
+                for suggestion in suggestions:
+                    if isinstance(suggestion, dict) and 'resource' in suggestion and suggestion['resource'] == resource_name:
+                        if column not in resource_suggestions:
+                            resource_suggestions[column] = []
+                        resource_suggestions[column].append(suggestion)
     
     # Get composite field definitions
     composite_fields = get_composite_field_definitions(resource_name)
@@ -448,10 +457,16 @@ def render_field_mapping(resource_name, field_name, field_info, df):
     with col2:
         # Get suggested columns for this field
         suggested_columns = []
-        for column, suggestions in st.session_state.suggested_mappings.items():
-            for suggestion in suggestions:
-                if suggestion['resource'] == resource_name and suggestion['field'] == field_name:
-                    suggested_columns.append(column)
+        
+        # Check if suggested_mappings exists
+        if 'suggested_mappings' in st.session_state:
+            for column, suggestions in st.session_state.suggested_mappings.items():
+                # Make sure suggestions is a list
+                if isinstance(suggestions, list):
+                    for suggestion in suggestions:
+                        if isinstance(suggestion, dict) and 'resource' in suggestion and 'field' in suggestion:
+                            if suggestion['resource'] == resource_name and suggestion['field'] == field_name:
+                                suggested_columns.append(column)
         
         # Create a selectbox with suggestions highlighted
         columns = [""] + list(df.columns)
