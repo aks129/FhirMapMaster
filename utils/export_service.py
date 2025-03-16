@@ -244,14 +244,15 @@ def export_mapping_as_file(export_format, mappings, fhir_standard, df=None):
     Export mapping in the specified format and provide a download link.
     
     Args:
-        export_format: Format to export (python, json, or fml)
+        export_format: Format to export (python, json, fml, hl7v2_python, hl7v2_samples, ccda_python, ccda_sample)
         mappings: Dict containing the finalized mappings
-        fhir_standard: The FHIR standard being used
-        df: Optional DataFrame for FML export (required for FML)
+        fhir_standard: The FHIR standard being used (only applicable for FHIR formats)
+        df: Optional DataFrame for FML export and sample generation
     
     Returns:
         tuple (content, filename) for the exported mapping
     """
+    # FHIR export formats
     if export_format == "python":
         content = generate_python_code(mappings, fhir_standard)
         filename = "fhir_mapping.py"
@@ -268,6 +269,57 @@ def export_mapping_as_file(export_format, mappings, fhir_standard, df=None):
         fml_package = generate_fml_export(mappings, df, fhir_standard)
         content = json.dumps(fml_package, indent=2)
         filename = "fhir_mapping_language.json"
+    
+    # HL7 v2 export formats
+    elif export_format == "hl7v2_python":
+        from utils.hl7_v2_mapping import suggest_hl7_v2_mappings, generate_hl7_v2_code
+        
+        # First generate HL7 v2 mappings from the existing data
+        if df is None:
+            content = "Error: DataFrame is required for HL7 v2 export"
+            filename = "error.txt"
+        else:
+            hl7_mappings = suggest_hl7_v2_mappings(df)
+            content = generate_hl7_v2_code(hl7_mappings)
+            filename = "hl7_v2_mapping.py"
+    
+    elif export_format == "hl7v2_samples":
+        from utils.hl7_v2_mapping import suggest_hl7_v2_mappings, generate_hl7_v2_samples
+        
+        if df is None:
+            content = "Error: DataFrame is required for HL7 v2 sample generation"
+            filename = "error.txt"
+        else:
+            hl7_mappings = suggest_hl7_v2_mappings(df)
+            samples = generate_hl7_v2_samples(hl7_mappings, df, num_samples=2)
+            content = "\n\n==== Sample HL7 v2 Message 1 ====\n\n" + samples[0]
+            if len(samples) > 1:
+                content += "\n\n==== Sample HL7 v2 Message 2 ====\n\n" + samples[1]
+            filename = "hl7_v2_samples.txt"
+    
+    # C-CDA export formats
+    elif export_format == "ccda_python":
+        from utils.ccda_mapping import suggest_ccda_mappings, generate_ccda_template_code
+        
+        if df is None:
+            content = "Error: DataFrame is required for C-CDA export"
+            filename = "error.txt"
+        else:
+            ccda_mappings = suggest_ccda_mappings(df)
+            content = generate_ccda_template_code(ccda_mappings)
+            filename = "ccda_mapping.py"
+    
+    elif export_format == "ccda_sample":
+        from utils.ccda_mapping import suggest_ccda_mappings, generate_ccda_sample
+        
+        if df is None:
+            content = "Error: DataFrame is required for C-CDA sample generation"
+            filename = "error.txt"
+        else:
+            ccda_mappings = suggest_ccda_mappings(df)
+            content = generate_ccda_sample(ccda_mappings, df)
+            filename = "ccda_sample.xml"
+    
     else:
         content = "Unsupported export format"
         filename = "error.txt"
