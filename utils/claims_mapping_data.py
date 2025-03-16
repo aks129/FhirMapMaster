@@ -320,9 +320,21 @@ def get_claims_mapping(column_name):
             "match_type": "direct"
         }
     
+    # Check variations from the pre-computed mappings
+    if normalized in COLUMN_VARIATION_MAPPINGS:
+        variation = COLUMN_VARIATION_MAPPINGS[normalized]
+        mapping = variation["mapping"]
+        return {
+            "column": variation["column"],
+            "resource": mapping["resource"],
+            "field": mapping["field"],
+            "confidence": 0.8,  # Good confidence for variation matches
+            "match_type": "variation_match"
+        }
+    
     # Try removing common prefixes/suffixes and check again
-    common_prefixes = ["clm_", "claim_", "pat_", "patient_"]
-    common_suffixes = ["_code", "_id", "_date", "_amt", "_amount"]
+    common_prefixes = ["clm_", "claim_", "pat_", "patient_", "mbr_", "member_", "prov_", "provider_"]
+    common_suffixes = ["_code", "_id", "_date", "_dt", "_amt", "_amount", "_num", "_number"]
     
     for prefix in common_prefixes:
         if normalized.startswith(prefix):
@@ -350,22 +362,98 @@ def get_claims_mapping(column_name):
                     "match_type": "suffix_match"
                 }
     
-    # Check variations
-    if normalized in COLUMN_VARIATION_MAPPINGS:
-        variation = COLUMN_VARIATION_MAPPINGS[normalized]
-        mapping = variation["mapping"]
-        return {
-            "column": variation["column"],
-            "resource": mapping["resource"],
-            "field": mapping["field"],
-            "confidence": 0.8,  # Good confidence for variation matches
-            "match_type": "variation_match"
-        }
+    # Check for abbreviated forms which are common in healthcare data
+    abbreviated_forms = {
+        # Patient related
+        "pt": "patient",
+        "pat": "patient",
+        "mbr": "member",
+        # Dates
+        "dob": "birth_date",
+        "bd": "birth_date",
+        "dos": "service_date",
+        "svcdt": "service_date",
+        "svc_dt": "service_date",
+        # Fields
+        "fname": "first_name",
+        "lname": "last_name",
+        "addr": "address",
+        "prov": "provider",
+        "dt": "date",
+        "amt": "amount",
+        "id": "identifier",
+        "num": "number",
+        "clm": "claim"
+    }
+    
+    # Try to expand abbreviated forms
+    if '_' in normalized:
+        parts = normalized.split('_')
+        expanded_parts = []
+        
+        for part in parts:
+            if part in abbreviated_forms:
+                expanded_parts.append(abbreviated_forms[part])
+            else:
+                expanded_parts.append(part)
+        
+        expanded = '_'.join(expanded_parts)
+        
+        # Check if the expanded form exists in our mappings
+        if expanded != normalized and expanded in CLAIMS_DATA_MAPPINGS:
+            mapping = CLAIMS_DATA_MAPPINGS[expanded]
+            return {
+                "column": expanded,
+                "resource": mapping["resource"],
+                "field": mapping["field"],
+                "confidence": 0.8,  # Good confidence for expanded abbreviations
+                "match_type": "abbreviation_match"
+            }
+    else:
+        # Check if this is a standalone abbreviation
+        if normalized in abbreviated_forms:
+            expanded = abbreviated_forms[normalized]
+            if expanded in CLAIMS_DATA_MAPPINGS:
+                mapping = CLAIMS_DATA_MAPPINGS[expanded]
+                return {
+                    "column": expanded,
+                    "resource": mapping["resource"],
+                    "field": mapping["field"],
+                    "confidence": 0.75,  # Slightly lower confidence for standalone abbreviations
+                    "match_type": "abbreviation_match"
+                }
+    
+    # Try pattern matching for common healthcare data column patterns
+    import re
+    patterns = {
+        # Pattern: (target_column, confidence)
+        r"^pt[_\.]?id$": ("patient_id", 0.78),
+        r"^pat[_\.]?id$": ("patient_id", 0.78),
+        r"^mbr[_\.]?id$": ("patient_id", 0.78),
+        r"^clm[_\.]?id$": ("claim_id", 0.78),
+        r"^svc[_\.]?dt$": ("service_date", 0.78),
+        r"^svc[_\.]?date$": ("service_date", 0.78),
+        r"^birth[_\.]?dt$": ("birth_date", 0.78),
+        r"^paid[_\.]?amt$": ("paid_amount", 0.78),
+        r"^pay[_\.]?amt$": ("paid_amount", 0.75),
+    }
+    
+    for pattern, (target, confidence) in patterns.items():
+        if re.match(pattern, normalized):
+            if target in CLAIMS_DATA_MAPPINGS:
+                mapping = CLAIMS_DATA_MAPPINGS[target]
+                return {
+                    "column": target,
+                    "resource": mapping["resource"],
+                    "field": mapping["field"],
+                    "confidence": confidence,
+                    "match_type": "pattern_match"
+                }
     
     # Check for partial matches
     for key, mapping in CLAIMS_DATA_MAPPINGS.items():
-        # If column contains a known key as a substring
-        if key in normalized and len(key) > 3:  # Avoid short substrings
+        # If column contains a known key as a substring (avoid short keys)
+        if key in normalized and len(key) > 3:
             return {
                 "column": key,
                 "resource": mapping["resource"],
@@ -375,7 +463,11 @@ def get_claims_mapping(column_name):
             }
     
     # Check for the presence of certain keywords to make educated guesses
-    if "claim" in normalized:
+    # Use a more comprehensive approach with multiple keyword patterns
+    
+    # ExplanationOfBenefit-related keywords
+    eob_keywords = ["claim", "clm", "eob", "explanation", "benefit"]
+    if any(kw in normalized for kw in eob_keywords):
         return {
             "column": "claim_id",
             "resource": "ExplanationOfBenefit",
@@ -383,7 +475,10 @@ def get_claims_mapping(column_name):
             "confidence": 0.6,  # Lower confidence for keyword matches
             "match_type": "keyword_match"
         }
-    elif "patient" in normalized or "member" in normalized:
+    
+    # Patient-related keywords
+    patient_keywords = ["patient", "member", "mbr", "pt", "pat", "person", "subscriber"]
+    if any(kw in normalized for kw in patient_keywords):
         return {
             "column": "patient_id",
             "resource": "Patient",
@@ -391,7 +486,10 @@ def get_claims_mapping(column_name):
             "confidence": 0.6,
             "match_type": "keyword_match"
         }
-    elif "provider" in normalized or "npi" in normalized:
+    
+    # Provider-related keywords
+    provider_keywords = ["provider", "prov", "doctor", "physician", "npi"]
+    if any(kw in normalized for kw in provider_keywords):
         return {
             "column": "provider_id",
             "resource": "Practitioner",
@@ -399,7 +497,10 @@ def get_claims_mapping(column_name):
             "confidence": 0.6,
             "match_type": "keyword_match"
         }
-    elif "service" in normalized and "date" in normalized:
+    
+    # Service date keywords
+    if (any(kw in normalized for kw in ["service", "svc"]) and 
+        any(kw in normalized for kw in ["date", "dt", "day"])):
         return {
             "column": "service_date",
             "resource": "ExplanationOfBenefit",
@@ -407,11 +508,46 @@ def get_claims_mapping(column_name):
             "confidence": 0.6,
             "match_type": "keyword_match"
         }
-    elif "amount" in normalized or "payment" in normalized or "paid" in normalized:
+    
+    # Amount-related keywords
+    amount_keywords = ["amount", "amt", "payment", "paid", "cost", "charge", "fee", "price"]
+    if any(kw in normalized for kw in amount_keywords):
         return {
             "column": "paid_amount",
             "resource": "ExplanationOfBenefit",
             "field": "item.adjudication.amount",
+            "confidence": 0.5,
+            "match_type": "keyword_match"
+        }
+        
+    # Date of birth keywords
+    dob_keywords = ["birth", "dob", "birthdate", "born"]
+    if any(kw in normalized for kw in dob_keywords):
+        return {
+            "column": "birth_date",
+            "resource": "Patient",
+            "field": "birthDate",
+            "confidence": 0.6,
+            "match_type": "keyword_match"
+        }
+    
+    # Gender/sex keywords
+    if "gender" in normalized or "sex" in normalized:
+        return {
+            "column": "gender",
+            "resource": "Patient",
+            "field": "gender",
+            "confidence": 0.6,
+            "match_type": "keyword_match"
+        }
+    
+    # Address-related keywords
+    address_keywords = ["address", "addr", "street", "location"]
+    if any(kw in normalized for kw in address_keywords):
+        return {
+            "column": "address",
+            "resource": "Patient",
+            "field": "address",
             "confidence": 0.5,
             "match_type": "keyword_match"
         }
