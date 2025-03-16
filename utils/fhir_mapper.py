@@ -213,7 +213,7 @@ def suggest_mappings(df, standard):
         'gender': lambda s: (isinstance(s, pd.Series) and s.astype(str).str.lower().isin(['male', 'female', 'm', 'f', 'other', 'unknown']).any()),
         'telecom': lambda s: (isinstance(s, pd.Series) and (s.astype(str).str.contains(r'@').any() or s.astype(str).str.contains(r'\d{3}[-\s]?\d{3}[-\s]?\d{4}').any())),
         'address': lambda s: (isinstance(s, pd.Series) and s.astype(str).str.contains(r'\d+\s+\w+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd)', case=False).any()),
-        'identifier': lambda s: df[s].nunique() > 0.8 * len(df) if len(df) > 10 else False
+        'identifier': lambda s: s.nunique() > 0.8 * len(df) if len(df) > 10 else False
     }
 
     for column in df.columns:
