@@ -9,6 +9,9 @@ import pandas as pd
 import numpy as np
 import re
 from typing import Dict, List, Any, Union, Optional, Tuple, Callable
+from utils.fhir_datatypes import (
+    HumanName, Address, ContactPoint, Identifier, CodeableConcept, FHIRDatatype
+)
 
 # Define mapper types
 class FieldMapperTypes:
@@ -25,6 +28,7 @@ class FieldMapperTypes:
     CASE_TRANSFORM = "case_transform"
     CODE_LOOKUP = "code_lookup"
     TEMPLATE = "template"
+    FHIR_DATATYPE = "fhir_datatype"
 
 class CaseTransformTypes:
     """Types of case transformations."""
@@ -194,6 +198,110 @@ class FieldMapper:
                 return template.format(**values)
             except (KeyError, ValueError):
                 return None
+                
+        elif self.mapping_type == FieldMapperTypes.FHIR_DATATYPE:
+            datatype = self.parameters.get('datatype')
+            if datatype == 'HumanName':
+                # Get the field values for HumanName
+                if 'full_name' in self.parameters:
+                    # From a single full name field
+                    full_name_field = self.parameters.get('full_name')
+                    full_name = source_data.get(full_name_field)
+                    if full_name:
+                        return HumanName.from_full_name(full_name).to_dict()
+                else:
+                    # From individual name parts
+                    given_field = self.parameters.get('given')
+                    family_field = self.parameters.get('family')
+                    prefix_field = self.parameters.get('prefix')
+                    suffix_field = self.parameters.get('suffix')
+                    
+                    given = source_data.get(given_field) if given_field else None
+                    family = source_data.get(family_field) if family_field else None
+                    prefix = source_data.get(prefix_field) if prefix_field else None
+                    suffix = source_data.get(suffix_field) if suffix_field else None
+                    
+                    if any([given, family, prefix, suffix]):
+                        return HumanName.from_parts(
+                            first_name=given,
+                            last_name=family,
+                            prefix=prefix,
+                            suffix=suffix
+                        ).to_dict()
+                        
+            elif datatype == 'Address':
+                # Get the field values for Address
+                if 'full_address' in self.parameters:
+                    # From a single address field
+                    full_address_field = self.parameters.get('full_address')
+                    full_address = source_data.get(full_address_field)
+                    if full_address:
+                        return Address.from_single_string(full_address).to_dict()
+                else:
+                    # From individual address parts
+                    line_field = self.parameters.get('line')
+                    city_field = self.parameters.get('city')
+                    state_field = self.parameters.get('state')
+                    postal_code_field = self.parameters.get('postalCode')
+                    country_field = self.parameters.get('country')
+                    
+                    line = source_data.get(line_field) if line_field else None
+                    city = source_data.get(city_field) if city_field else None
+                    state = source_data.get(state_field) if state_field else None
+                    postal_code = source_data.get(postal_code_field) if postal_code_field else None
+                    country = source_data.get(country_field) if country_field else None
+                    
+                    if any([line, city, state, postal_code, country]):
+                        return Address.from_parts(
+                            street_address=line,
+                            city=city,
+                            state=state,
+                            postal_code=postal_code,
+                            country=country
+                        ).to_dict()
+                        
+            elif datatype == 'ContactPoint':
+                # Get the field value for ContactPoint
+                value_field = self.parameters.get('value')
+                system_field = self.parameters.get('system')
+                
+                value = source_data.get(value_field) if value_field else None
+                system = source_data.get(system_field) if system_field else None
+                
+                if value:
+                    # If we have a system specified, use it, otherwise infer from value
+                    if system:
+                        return ContactPoint(value=value, system=system).to_dict()
+                    else:
+                        return ContactPoint.from_value(value).to_dict()
+                        
+            elif datatype == 'Identifier':
+                # Get the field values for Identifier
+                value_field = self.parameters.get('value')
+                system_field = self.parameters.get('system')
+                
+                value = source_data.get(value_field) if value_field else None
+                system = source_data.get(system_field) if system_field else None
+                
+                if value:
+                    return Identifier(value=value, system=system).to_dict()
+                    
+            elif datatype == 'CodeableConcept':
+                # Get the field values for CodeableConcept
+                code_field = self.parameters.get('code')
+                system_field = self.parameters.get('system')
+                display_field = self.parameters.get('display')
+                
+                code = source_data.get(code_field) if code_field else None
+                system = source_data.get(system_field) if system_field else None
+                display = source_data.get(display_field) if display_field else None
+                
+                if code:
+                    return CodeableConcept.from_code(
+                        code=code,
+                        system=system,
+                        display=display
+                    ).to_dict()
         
         return None
 
@@ -348,6 +456,65 @@ def create_resource_mapper_from_mappings(resource_type: str,
                                     'fields': mapping_info.get('fields', {})
                                 })
         
+        elif mapping_type == FieldMapperTypes.FHIR_DATATYPE:
+            # Handle FHIR complex datatypes
+            datatype = mapping_info.get('datatype')
+            
+            # Create parameters based on the datatype
+            parameters = {'datatype': datatype}
+            
+            if datatype == 'HumanName':
+                # Handle both full name and composite name part fields
+                if 'full_name' in mapping_info:
+                    parameters['full_name'] = mapping_info.get('full_name')
+                else:
+                    if 'given' in mapping_info:
+                        parameters['given'] = mapping_info.get('given')
+                    if 'family' in mapping_info:
+                        parameters['family'] = mapping_info.get('family')
+                    if 'prefix' in mapping_info:
+                        parameters['prefix'] = mapping_info.get('prefix')
+                    if 'suffix' in mapping_info:
+                        parameters['suffix'] = mapping_info.get('suffix')
+                        
+            elif datatype == 'Address':
+                # Handle both full address and composite address part fields
+                if 'full_address' in mapping_info:
+                    parameters['full_address'] = mapping_info.get('full_address')
+                else:
+                    if 'line' in mapping_info:
+                        parameters['line'] = mapping_info.get('line')
+                    if 'city' in mapping_info:
+                        parameters['city'] = mapping_info.get('city')
+                    if 'state' in mapping_info:
+                        parameters['state'] = mapping_info.get('state')
+                    if 'postalCode' in mapping_info:
+                        parameters['postalCode'] = mapping_info.get('postalCode')
+                    if 'country' in mapping_info:
+                        parameters['country'] = mapping_info.get('country')
+                        
+            elif datatype == 'ContactPoint':
+                if 'value' in mapping_info:
+                    parameters['value'] = mapping_info.get('value')
+                if 'system' in mapping_info:
+                    parameters['system'] = mapping_info.get('system')
+                    
+            elif datatype == 'Identifier':
+                if 'value' in mapping_info:
+                    parameters['value'] = mapping_info.get('value')
+                if 'system' in mapping_info:
+                    parameters['system'] = mapping_info.get('system')
+                    
+            elif datatype == 'CodeableConcept':
+                if 'code' in mapping_info:
+                    parameters['code'] = mapping_info.get('code')
+                if 'system' in mapping_info:
+                    parameters['system'] = mapping_info.get('system')
+                if 'display' in mapping_info:
+                    parameters['display'] = mapping_info.get('display')
+                    
+            mapper = FieldMapper(mapping_type=FieldMapperTypes.FHIR_DATATYPE, parameters=parameters)
+            
         else:
             # Skip unsupported mapping types
             continue
@@ -393,6 +560,65 @@ def convert_finalized_mappings_to_resource_mappers(finalized_mappings: Dict[str,
                         'input_format': None,  # Auto-detect
                         'output_format': '%Y-%m-%d'
                     }
+                
+                # Handle FHIR complex datatypes based on field path
+                # Patient.name --> HumanName
+                elif field == 'name' and resource_type == 'Patient':
+                    # Use a full name field if only one column, otherwise try to find name parts
+                    mappings[field] = {
+                        'type': FieldMapperTypes.FHIR_DATATYPE,
+                        'datatype': 'HumanName',
+                        'full_name': source_column
+                    }
+                
+                # Patient.address --> Address
+                elif field == 'address' and resource_type == 'Patient':
+                    mappings[field] = {
+                        'type': FieldMapperTypes.FHIR_DATATYPE,
+                        'datatype': 'Address',
+                        'full_address': source_column
+                    }
+                
+                # Patient.telecom --> ContactPoint
+                elif field == 'telecom' and resource_type == 'Patient':
+                    # Detect if this is a phone or email
+                    if any(phone_term in source_column.lower() for phone_term in ['phone', 'tel', 'mobile', 'cell']):
+                        mappings[field] = {
+                            'type': FieldMapperTypes.FHIR_DATATYPE,
+                            'datatype': 'ContactPoint',
+                            'value': source_column,
+                            'system': 'phone'
+                        }
+                    elif any(email_term in source_column.lower() for email_term in ['email', 'mail']):
+                        mappings[field] = {
+                            'type': FieldMapperTypes.FHIR_DATATYPE,
+                            'datatype': 'ContactPoint',
+                            'value': source_column,
+                            'system': 'email'
+                        }
+                    else:
+                        mappings[field] = {
+                            'type': FieldMapperTypes.FHIR_DATATYPE,
+                            'datatype': 'ContactPoint',
+                            'value': source_column
+                        }
+                
+                # Patient.identifier --> Identifier
+                elif field == 'identifier' and resource_type == 'Patient':
+                    mappings[field] = {
+                        'type': FieldMapperTypes.FHIR_DATATYPE,
+                        'datatype': 'Identifier',
+                        'value': source_column
+                    }
+                
+                # Condition.code, Observation.code, etc. --> CodeableConcept
+                elif field == 'code' and resource_type in ['Condition', 'Observation', 'Procedure', 'Medication']:
+                    mappings[field] = {
+                        'type': FieldMapperTypes.FHIR_DATATYPE,
+                        'datatype': 'CodeableConcept',
+                        'code': source_column
+                    }
+                
                 # Add more type-specific transformations as needed
             
         # Create a ResourceMapper from these mappings
