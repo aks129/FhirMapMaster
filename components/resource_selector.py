@@ -1,5 +1,6 @@
 """
-Resource selector component for pre-mapping configuration.
+Profile selector component for pre-mapping configuration.
+This component allows users to select which FHIR profiles they want to map their data to.
 """
 import streamlit as st
 import pandas as pd
@@ -7,15 +8,15 @@ from utils.fhir_mapper import get_fhir_resources
 
 def render_resource_selector():
     """
-    Render the FHIR resource selection interface.
-    This step comes before mapping to let users select which resources they want to map to.
+    Render the FHIR profile selection interface.
+    This step comes before mapping to let users select which profiles they want to map to.
     """
-    st.header("🕸️ Resource Selection Configuration")
+    st.header("🕸️ Profile Selection Configuration")
     
     st.markdown("""
     ### *"Choose your web anchors before spinning the web!"*
     
-    Parker will help you map your data to FHIR, but first, select which FHIR resources 
+    Parker will help you map your data to FHIR profiles, but first, select which FHIR profiles 
     you want to include in your mapping. This helps focus the mapping process on just what you need.
     """)
     
@@ -54,18 +55,18 @@ def render_resource_selector():
     filtered_categories = {k: v for k, v in resource_categories.items() 
                            if any(r in fhir_resources for r in v)}
     
-    st.markdown("## Select FHIR Resources")
+    st.markdown("## Select FHIR Profiles")
     
     st.markdown("""
-    Choose which FHIR resources you want to include in your mapping. Parker will help you map your data 
-    to these resources based on the implementation guide you selected.
+    Choose which FHIR profiles you want to include in your mapping. Parker will help you map your data 
+    to these profiles based on the implementation guide you selected.
     """)
     
     # Quick select options
     quick_select = st.radio(
-        "Quick Resource Selection:",
+        "Quick Profile Selection:",
         [
-            "🕸️ Select Individual Resources",
+            "🕸️ Select Individual Profiles",
             "🌟 Clinical Basics (Patient, Condition, Observation, etc.)",
             "💊 Medication-focused (Patient, Medication, MedicationRequest, etc.)",
             "💰 Financial (Patient, Coverage, ExplanationOfBenefit, etc.)"
@@ -94,16 +95,16 @@ def render_resource_selector():
         st.session_state.selected_resources = {}
         st.session_state.last_quick_select = quick_select
     
-    # Display resources by category with checkboxes
-    st.markdown("### Resource Categories")
+    # Display profiles by category with checkboxes
+    st.markdown("### Profile Categories")
     
     for category, resources in filtered_categories.items():
-        # Only show categories that have resources in the selected IG
+        # Only show categories that have profiles in the selected IG
         resources = [r for r in resources if r in fhir_resources]
         if not resources:
             continue
             
-        with st.expander(f"{category} Resources"):
+        with st.expander(f"{category} Profiles"):
             for resource in resources:
                 resource_key = f"resource_{resource}"
                 # Initialize with current selection state or default to False
@@ -121,17 +122,17 @@ def render_resource_selector():
                     if resource in st.session_state.selected_resources:
                         st.session_state.selected_resources.pop(resource)
     
-    # Show summary of selected resources
-    st.markdown("## Selected Resources")
+    # Show summary of selected profiles
+    st.markdown("## Selected Profiles")
     
     if st.session_state.selected_resources:
-        st.success(f"You've selected {len(st.session_state.selected_resources)} resources for mapping.")
+        st.success(f"You've selected {len(st.session_state.selected_resources)} profiles for mapping.")
         
-        # Display the selected resources
+        # Display the selected profiles
         for resource in st.session_state.selected_resources:
             st.write(f"✅ {resource}")
     else:
-        st.warning("No resources selected. Please select at least one resource for mapping.")
+        st.warning("No profiles selected. Please select at least one profile for mapping.")
     
     # Navigation buttons
     col1, col2 = st.columns(2)
@@ -143,11 +144,11 @@ def render_resource_selector():
     with col2:
         proceed_button = st.button("Continue to Mapping 🔜", disabled=not st.session_state.selected_resources)
         if proceed_button:
-            # Ensure we have at least one resource selected
+            # Ensure we have at least one profile selected
             if st.session_state.selected_resources:
                 return True
             else:
-                st.error("Please select at least one resource before continuing.")
+                st.error("Please select at least one profile before continuing.")
                 return False
     
     return False
@@ -168,30 +169,63 @@ def get_resource_profiles(ig_name, version):
     
     if "US Core" in ig_name:
         # US Core has specific profiles for many resource types
+        # Complete profile list from https://hl7.org/fhir/us/core/profiles-and-extensions.html#profiles
         profiles = {
-            "Patient": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-patient"],
-            "Practitioner": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-practitioner"],
-            "Organization": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-organization"],
-            "Encounter": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-encounter"],
-            "Condition": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-condition"],
-            "Procedure": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-procedure"],
+            "Patient": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"],
+            "Practitioner": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"],
+            "PractitionerRole": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitionerrole"],
+            "Organization": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"],
+            "Location": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-location"],
+            "Encounter": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"],
+            "Condition": [
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-encounter-diagnosis"
+            ],
+            "Procedure": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure"],
+            "AllergyIntolerance": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-allergyintolerance"],
+            "Medication": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-medication"],
+            "MedicationRequest": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest"],
+            "Immunization": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-immunization"],
+            "CarePlan": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-careplan"],
+            "CareTeam": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-careteam"],
+            "Goal": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-goal"],
+            "ServiceRequest": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-servicerequest"],
+            "Provenance": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-provenance"],
+            "Device": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-implantable-device"],
+            "RelatedPerson": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-relatedperson"],
+            "Specimen": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-specimen"],
+            "QuestionnaireResponse": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-questionnaireresponse"],
             "Observation": [
-                f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-observation-lab",
-                f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-vital-signs",
-                f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-blood-pressure",
-                f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-body-temperature",
-                f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-pulse-oximetry",
-                f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-smokingstatus"
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-vital-signs",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-bloodpressure",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-bodytemp",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-bodyheight",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-bodyweight",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-bmi",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-head-circumference",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-heartrate",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-respiratory-rate",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-pulse-oximetry",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-smokingstatus",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-result",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-test",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-imaging",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-sdoh-assessment",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-sexual-orientation",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-social-history",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-survey",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-pediatric-bmi-for-age",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-pediatric-head-occipital-frontal-circumference-percentile",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-pediatric-weight-for-height",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-waist-circumference",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-simple-observation"
             ],
-            "AllergyIntolerance": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-allergyintolerance"],
-            "Medication": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-medication"],
-            "MedicationRequest": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-medicationrequest"],
-            "Immunization": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-immunization"],
             "DiagnosticReport": [
-                f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-diagnosticreport-lab",
-                f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-diagnosticreport-note"
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab",
+                f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-note"
             ],
-            "DocumentReference": [f"http://hl7.org/fhir/us/core/{version}/StructureDefinition/us-core-documentreference"]
+            "DocumentReference": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-documentreference"]
         }
     elif "CARIN BB" in ig_name:
         # CARIN BB focuses on financial and insurance resources
