@@ -346,10 +346,16 @@ def render_resource_mapping(resource_name, fhir_resources, df):
     # Sort fields with required first, then must-support, then others
     sorted_fields = required_fields + must_support_fields + other_fields
     
+    # Add more debug information
+    st.write(f"Debug: Required fields: {required_fields}")
+    st.write(f"Debug: Must-support fields: {must_support_fields}")
+    st.write(f"Debug: Other fields: {other_fields[:5]}...")
+    
     # Create expandable sections for different field types
     with st.expander("🚨 Required Fields", expanded=True):
         if required_fields:
             for field in required_fields:
+                st.write(f"Debug: Rendering required field: {field}")
                 render_field_mapping(resource_name, field, resource_fields[field], df)
         else:
             st.info("No required fields for this resource.")
@@ -357,13 +363,22 @@ def render_resource_mapping(resource_name, fhir_resources, df):
     with st.expander("⭐ Must-Support Fields", expanded=True):
         if must_support_fields:
             for field in must_support_fields:
+                st.write(f"Debug: Rendering must-support field: {field}")
                 render_field_mapping(resource_name, field, resource_fields[field], df)
         else:
             st.info("No must-support fields for this resource.")
     
-    with st.expander("📋 Other Fields", expanded=False):
-        for field in other_fields:
-            render_field_mapping(resource_name, field, resource_fields[field], df)
+    with st.expander("📋 Other Fields", expanded=True):  # Changed to expanded=True for debugging
+        if other_fields:
+            st.write(f"Debug: Total other fields: {len(other_fields)}")
+            for field in other_fields:
+                st.write(f"Debug: Rendering other field: {field}")
+                try:
+                    render_field_mapping(resource_name, field, resource_fields[field], df)
+                except Exception as e:
+                    st.error(f"Error rendering field {field}: {str(e)}")
+        else:
+            st.info("No other fields for this resource.")
     
     # Special handling for composite fields like HumanName, Address, etc.
     if composite_fields:
@@ -459,8 +474,12 @@ def render_field_mapping(resource_name, field_name, field_info, df):
         # If field_info is a string or other non-dict type, use it as the type
         field_type = 'string'
     
+    # Debug field type information
+    st.write(f"Debug field: {field_name}, Type: {field_type}")
+    
     # Don't show mapping UI for complex types that should be handled in composite fields
     if field_type in ['HumanName', 'Address', 'ContactPoint', 'Identifier', 'CodeableConcept'] and "." not in field_name:
+        st.write(f"Debug: Skipping complex field {field_name} of type {field_type}")
         return
     
     # Create layout
