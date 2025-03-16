@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from utils.export_service import export_mapping_as_file, get_download_link
 from utils.fhir_mapper import generate_python_mapping_code
+from components.fml_viewer import render_fml_viewer
 
 def render_export_interface():
     """
@@ -73,7 +74,11 @@ def render_export_interface():
         
         export_format = st.radio(
             "Choose Your Web Export Format:",
-            ["🐍 Python Web-Shooter", "📊 JSON Web Blueprint"],
+            [
+                "🐍 Python Web-Shooter", 
+                "📊 JSON Web Blueprint", 
+                "🌐 FHIR Mapping Language (FML)"
+            ],
             index=0,
             help="Choose the format for your exported mapping."
         )
@@ -86,7 +91,7 @@ def render_export_interface():
             
             *"This Python script packs the same punch as my web-shooters!"* - Parker
             """)
-        else:  # JSON Mapping
+        elif "JSON" in export_format:
             format_key = "json"
             st.markdown("""
             **📊 JSON Web Blueprint** provides a structured representation of your mapping that can be easily integrated
@@ -94,12 +99,31 @@ def render_export_interface():
             
             *"A blueprint of my web design that any system can understand!"* - Parker
             """)
+        else:  # FHIR Mapping Language
+            format_key = "fml"
+            st.markdown("""
+            **🌐 FHIR Mapping Language (FML)** provides a standards-based mapping representation defined by HL7 FHIR.
+            Includes StructureMap, Clinical Quality Language (CQL) accessors, and Liquid templates, fully compatible with FHIR mapping engines.
+            
+            *"For the advanced web-slingers who speak the official language of FHIR!"* - Parker
+            
+            [Learn more about FHIR Mapping Language](https://www.hl7.org/fhir/mapping-language.html)
+            """)
+            
+            # Display FML viewer for detailed exploration
+            if "df" in st.session_state:
+                render_fml_viewer(mappings, st.session_state.df, fhir_standard)
         
         # Export button with Spider-Man theme
         if st.button("🕸️ Generate Web Export"):
             with st.spinner("🕸️ Parker is weaving your export..."):
+                # Make sure we have a DataFrame for FML export
+                df = None
+                if format_key == "fml" and "df" in st.session_state:
+                    df = st.session_state.df
+                
                 # Generate the export content
-                content, filename = export_mapping_as_file(format_key, mappings, fhir_standard)
+                content, filename = export_mapping_as_file(format_key, mappings, fhir_standard, df)
                 
                 # Display preview of the export with Spider-Man theme
                 st.subheader("🕸️ Web Design Preview")

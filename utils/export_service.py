@@ -239,14 +239,15 @@ def get_download_link(content, filename, display_text):
     href = f'data:text/plain;base64,{b64_content}'
     return f'<a href="{href}" download="{filename}">{display_text}</a>'
 
-def export_mapping_as_file(export_format, mappings, fhir_standard):
+def export_mapping_as_file(export_format, mappings, fhir_standard, df=None):
     """
     Export mapping in the specified format and provide a download link.
     
     Args:
-        export_format: Format to export (python or json)
+        export_format: Format to export (python, json, or fml)
         mappings: Dict containing the finalized mappings
         fhir_standard: The FHIR standard being used
+        df: Optional DataFrame for FML export (required for FML)
     
     Returns:
         tuple (content, filename) for the exported mapping
@@ -257,6 +258,16 @@ def export_mapping_as_file(export_format, mappings, fhir_standard):
     elif export_format == "json":
         content = generate_json_mapping(mappings, fhir_standard)
         filename = "fhir_mapping.json"
+    elif export_format == "fml":
+        if df is None:
+            raise ValueError("DataFrame is required for FML export")
+        
+        # Import the FML generator here to avoid circular imports
+        from utils.fhir_mapping_language import generate_fml_export
+        
+        fml_package = generate_fml_export(mappings, df, fhir_standard)
+        content = json.dumps(fml_package, indent=2)
+        filename = "fhir_mapping_language.json"
     else:
         content = "Unsupported export format"
         filename = "error.txt"
