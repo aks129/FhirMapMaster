@@ -162,25 +162,26 @@ def get_fhir_resources(standard, version=""):
     resources = {}
     
     if "US Core" in standard:
-        # Start with the base resources
-        resources = US_CORE_RESOURCES.copy()
-        
-        # Try to enrich with Implementation Guide profiles
+        # Start with all profiles from the US Core Implementation Guide
         try:
-            with st.spinner("Enhancing with US Core Implementation Guide..."):
-                # Fetch and enrich with US Core Implementation Guide
+            with st.spinner("Loading US Core Implementation Guide profiles..."):
+                # Fetch profiles from US Core Implementation Guide
                 ig_profiles = fetch_us_core_profiles()
                 
-                # Enrich our base resources with IG-specific details
-                for resource_name, resource_data in ig_profiles.items():
-                    # If resource exists, merge the fields
+                # Use these profiles as our primary resource definitions
+                resources = ig_profiles.copy()
+                
+                # Supplement with additional fields from our base resources if needed
+                for resource_name, resource_data in US_CORE_RESOURCES.items():
+                    # If resource exists, add any missing fields from our base definitions
                     if resource_name in resources:
                         if "fields" in resource_data:
-                            resources[resource_name]["fields"].update(resource_data["fields"])
-                        if "description" in resource_data:
-                            resources[resource_name]["description"] = resource_data["description"]
+                            # Only add fields that don't already exist
+                            for field_name, field_desc in resource_data["fields"].items():
+                                if field_name not in resources[resource_name]["fields"]:
+                                    resources[resource_name]["fields"][field_name] = field_desc
                     else:
-                        # If it's a new resource, add it
+                        # If it's a resource not in IG profiles, add it
                         resources[resource_name] = resource_data
         except Exception as e:
             st.warning(f"Could not enhance with US Core Implementation Guide: {str(e)}")
