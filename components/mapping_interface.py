@@ -172,10 +172,19 @@ def display_resource_mapping(resource_name, fhir_resources, df):
                     confidence = current_mapping['confidence']
                 
                 # Create a selectbox for choosing the column
+                # Set default index = 0 (not mapped) or find the index if the column exists
+                default_index = 0
+                if current_column is not None and current_column in all_columns:
+                    default_index = all_columns.index(current_column) + 1
+                elif current_column is not None:
+                    # If we have a mapping but the column doesn't exist, reset to not mapped
+                    st.warning(f"Column '{current_column}' not found in current dataset.")
+                    current_column = None
+                
                 selected_column = st.selectbox(
                     "Map to Column",
                     ["-- Not Mapped --"] + all_columns,
-                    index=0 if current_column is None else all_columns.index(current_column) + 1,
+                    index=default_index,
                     key=f"{resource_name}_{field}_column"
                 )
                 
