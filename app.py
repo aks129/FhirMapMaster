@@ -1,7 +1,7 @@
 import streamlit as st
 from components.file_uploader import render_file_uploader
 from components.data_profiler import render_data_profiler
-from components.mapping_interface import render_mapping_interface
+from components.mapping_interface_new import render_mapping_interface
 from components.export_interface import render_export_interface
 import os
 
