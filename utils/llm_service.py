@@ -26,7 +26,7 @@ def initialize_anthropic_client():
         st.error(f"Error initializing Anthropic client: {str(e)}")
         return None
 
-def analyze_unmapped_column(client, column_name, sample_values, fhir_standard):
+def analyze_unmapped_column(client, column_name, sample_values, fhir_standard, ig_version=""):
     """
     Analyze an unmapped column using Anthropic Claude to suggest a FHIR mapping.
     
@@ -35,6 +35,7 @@ def analyze_unmapped_column(client, column_name, sample_values, fhir_standard):
         column_name: Name of the column to analyze
         sample_values: Sample values from the column
         fhir_standard: FHIR standard being used (US Core or CARIN BB)
+        ig_version: The version of the implementation guide (optional)
     
     Returns:
         dict containing the suggested mapping and explanation
@@ -50,8 +51,8 @@ def analyze_unmapped_column(client, column_name, sample_values, fhir_standard):
     # Import resources to get available resources and fields
     from utils.fhir_mapper import get_fhir_resources
     
-    # Get the FHIR resources for this standard
-    resources = get_fhir_resources(fhir_standard)
+    # Get the FHIR resources for this standard and version
+    resources = get_fhir_resources(fhir_standard, ig_version)
     
     # Format sample values for the prompt
     sample_str = str(sample_values[:10])
@@ -127,7 +128,7 @@ Response:
             "explanation": f"Error getting LLM suggestion: {str(e)}"
         }
 
-def get_multiple_mapping_suggestions(client, unmapped_columns, df, fhir_standard):
+def get_multiple_mapping_suggestions(client, unmapped_columns, df, fhir_standard, ig_version=""):
     """
     Get mapping suggestions for multiple unmapped columns.
     
@@ -136,6 +137,7 @@ def get_multiple_mapping_suggestions(client, unmapped_columns, df, fhir_standard
         unmapped_columns: List of column names that need mapping
         df: pandas DataFrame containing the data
         fhir_standard: FHIR standard being used (US Core or CARIN BB)
+        ig_version: The version of the implementation guide (optional)
     
     Returns:
         dict containing suggestions for each column
@@ -147,7 +149,7 @@ def get_multiple_mapping_suggestions(client, unmapped_columns, df, fhir_standard
         sample_values = df[column].dropna().unique().tolist()
         
         # Get suggestion for this column
-        suggestion = analyze_unmapped_column(client, column, sample_values, fhir_standard)
+        suggestion = analyze_unmapped_column(client, column, sample_values, fhir_standard, ig_version)
         suggestions[column] = suggestion
     
     return suggestions
@@ -170,8 +172,8 @@ def analyze_complex_mapping(client, mapping_data, fhir_standard):
     # Import resources to get available resources and fields
     from utils.fhir_mapper import get_fhir_resources
     
-    # Get the FHIR resources for this standard
-    resources = get_fhir_resources(fhir_standard)
+    # Get the FHIR resources for this standard and version
+    resources = get_fhir_resources(fhir_standard, "")
     
     # Create a structured representation of the available resources and fields
     resource_info = {}

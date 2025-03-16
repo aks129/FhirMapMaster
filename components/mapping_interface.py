@@ -115,7 +115,7 @@ def render_mapping_interface():
         col1, col2 = st.columns(2)
         with col1:
             if st.button("🕸️ Respin the Web"):
-                st.session_state.suggested_mappings = suggest_mappings(df, fhir_standard)
+                st.session_state.suggested_mappings = suggest_mappings(df, fhir_standard, ig_version)
                 st.rerun()
         
         with col2:
@@ -331,11 +331,15 @@ def handle_unmapped_columns(df, fhir_standard):
                                 sample_values = df[column].dropna().unique().tolist()[:10]
                                 
                                 from utils.llm_service import analyze_unmapped_column
+                                # Get the version of the implementation guide
+                                ig_version = st.session_state.ig_version
+                                
                                 suggestion = analyze_unmapped_column(
                                     st.session_state.llm_client,
                                     column,
                                     sample_values,
-                                    fhir_standard
+                                    fhir_standard,
+                                    ig_version
                                 )
                                 
                                 st.session_state.llm_suggestions[column] = suggestion
