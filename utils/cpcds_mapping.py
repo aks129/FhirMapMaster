@@ -247,3 +247,58 @@ def get_claims_mapping_prompt_enhancement():
     """
     # Use our comprehensive knowledge base directly
     return get_claims_mapping_knowledge_base()
+
+def test_claims_pattern_matching(column_names):
+    """
+    Test the claims pattern matching capabilities with a list of column names.
+    This function helps evaluate the efficacy of the pattern matching system.
+    
+    Args:
+        column_names: List of column names to test
+    
+    Returns:
+        dict: Results with successful and failed matches, statistics by match type
+    """
+    from utils.claims_mapping_data import get_claims_mapping
+    
+    results = {
+        "success": [],
+        "failed": [],
+        "match_types": {
+            "direct": 0,
+            "variation_match": 0,
+            "prefix_match": 0,
+            "suffix_match": 0, 
+            "abbreviation_match": 0,
+            "pattern_match": 0,
+            "partial_match": 0,
+            "keyword_match": 0
+        },
+        "total": len(column_names),
+        "success_rate": 0
+    }
+    
+    for column in column_names:
+        mapping = get_claims_mapping(column)
+        
+        if mapping:
+            results["success"].append({
+                "column": column,
+                "mapped_to": f"{mapping['resource']}.{mapping['field']}",
+                "confidence": mapping["confidence"],
+                "match_type": mapping["match_type"]
+            })
+            
+            # Count by match type
+            if mapping["match_type"] in results["match_types"]:
+                results["match_types"][mapping["match_type"]] += 1
+                
+        else:
+            results["failed"].append(column)
+    
+    # Calculate success rate
+    if results["total"] > 0:
+        results["success_rate"] = len(results["success"]) / results["total"]
+        results["success_rate_pct"] = f"{results['success_rate'] * 100:.1f}%"
+    
+    return results
