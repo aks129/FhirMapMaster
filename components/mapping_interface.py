@@ -273,13 +273,14 @@ def handle_unmapped_columns(df, fhir_standard):
     if 'llm_suggestions' not in st.session_state:
         st.session_state.llm_suggestions = {}
     
-    # For CARIN BB, apply CPCDS mapping knowledge to enhance suggestions automatically
+    # For CARIN BB, apply claims data mapping knowledge to enhance suggestions automatically
     if fhir_standard == "CARIN BB" and unmapped_columns:
         try:
-            # Import the CPCDS mapping utility
+            # Import the claims mapping utility
             from utils.cpcds_mapping import enhance_mapping_suggestions
             
-            # Enhance existing suggestions and pre-generate for common patterns
+            # Enhance existing suggestions and pre-generate for common patterns using
+            # our comprehensive claims data knowledge base
             st.session_state.llm_suggestions = enhance_mapping_suggestions(
                 st.session_state.llm_suggestions, 
                 df.columns
@@ -291,9 +292,17 @@ def handle_unmapped_columns(df, fhir_standard):
                               and col in unmapped_columns]
             
             if new_suggestions:
-                st.success(f"🕸️ Parker's Spider-Sense automatically found {len(new_suggestions)} mappings from CPCDS patterns!")
+                st.success(f"🕸️ Parker's Spider-Sense automatically found {len(new_suggestions)} mappings from common claims data patterns!")
+                
+                # Show the auto-detected mappings in an expander
+                with st.expander("View Auto-Detected Claim Field Mappings"):
+                    for col in new_suggestions:
+                        suggestion = st.session_state.llm_suggestions[col]
+                        st.markdown(f"**{col}** → {suggestion['suggested_resource']}.{suggestion['suggested_field']} (Confidence: {suggestion['confidence']:.2f})")
+                        st.caption(suggestion['explanation'])
+                        st.divider()
         except Exception as e:
-            print(f"Error applying CPCDS mappings: {str(e)}")
+            st.warning(f"Error applying claims data mappings: {str(e)}")
     
     # Check if LLM client is available
     if not st.session_state.llm_client:

@@ -1,11 +1,19 @@
 """
-Test script to check the CPCDS mapping file parser
+Test script to check the CPCDS mapping file parser and comprehensive claims data mappings
 """
 
 import pandas as pd
 import os
 import json
 from pprint import pprint
+
+# Import our comprehensive claims mapping data module
+try:
+    from utils.claims_mapping_data import get_claims_mapping, get_claims_mapping_knowledge_base, CLAIMS_DATA_MAPPINGS
+    has_claims_mapping = True
+except ImportError:
+    print("WARNING: Claims mapping data module not found. Testing legacy parser only.")
+    has_claims_mapping = False
 
 # File path to the CPCDS mapping spreadsheet
 CPCDS_MAPPING_FILE = "cache/cpcds/CPCDStoFHIRProfilesMapping.xlsx"
@@ -214,6 +222,55 @@ def parse_cpcds_mappings():
         print(f"Error loading CPCDS mappings: {str(e)}")
         return {}
 
+def test_claims_mapping():
+    """
+    Test our comprehensive claims mapping data module.
+    """
+    if not has_claims_mapping:
+        print("Skipping claims mapping test - module not found.")
+        return
+    
+    print("\n\n=== TESTING COMPREHENSIVE CLAIMS DATA MAPPINGS ===")
+    
+    # Test direct mappings
+    print(f"Total built-in mappings: {len(CLAIMS_DATA_MAPPINGS)}")
+    
+    # Test direct column mapping function
+    test_columns = [
+        # Standard names
+        "claim_id", "patient_id", "provider_id", "service_date", 
+        # Common variations
+        "claimid", "pat_id", "memberid", "npi", "date_of_service", "dos",
+        # Compound variations  
+        "claim_number", "patient_identifier", "provider_npi", "service_from_date",
+        # Financial fields
+        "paid_amount", "allowed_amount", "billed_amount", "copay",
+        # Diagnosis and procedures
+        "diagnosis_code", "diagnosis_type", "procedure_code", "cpt_code", "hcpcs",
+        # Unusual variations
+        "clm_id", "mbr_id", "provid", "svc_dt", "pd_amt", "dx_cd",
+        # Separators
+        "claim.id", "patient-id", "provider id", "service.date",
+        # Made up names that should still get mapped
+        "my_claim_id_field", "the_patient_identifier", "this_is_the_npi_field"
+    ]
+    
+    matched_count = 0
+    for col in test_columns:
+        mapping = get_claims_mapping(col)
+        if mapping:
+            matched_count += 1
+            print(f"✅ {col} -> {mapping['resource']}.{mapping['field']} (Confidence: {mapping['confidence']:.2f}, Type: {mapping['match_type']})")
+        else:
+            print(f"❌ {col} -> No mapping found")
+    
+    print(f"\nSuccessfully matched {matched_count} out of {len(test_columns)} test columns ({matched_count/len(test_columns)*100:.1f}%)")
+    
+    # Test knowledge base generation
+    knowledge = get_claims_mapping_knowledge_base()
+    knowledge_length = len(knowledge.split('\n'))
+    print(f"Generated knowledge base with {knowledge_length} lines")
+
 if __name__ == "__main__":
     # Parse the CPCDS mappings
     mappings = parse_cpcds_mappings()
@@ -251,7 +308,13 @@ if __name__ == "__main__":
             print(f"❌ {col} -> No mapping found")
     
     # Save the mappings to a JSON file for reference
+    if not os.path.exists("cache/cpcds"):
+        os.makedirs("cache/cpcds", exist_ok=True)
+    
     with open("cache/cpcds/parsed_mappings.json", "w") as f:
         json.dump(mappings, f, indent=2)
     
     print("\nMappings saved to cache/cpcds/parsed_mappings.json")
+    
+    # Test our comprehensive claims mapping module
+    test_claims_mapping()

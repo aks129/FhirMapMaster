@@ -5,6 +5,25 @@ from components.mapping_interface import render_mapping_interface
 from components.export_interface import render_export_interface
 import os
 
+# Create cache directories if they don't exist
+def ensure_cache_dirs():
+    """
+    Create cache directories needed for the application.
+    """
+    cache_dirs = [
+        "cache",
+        "cache/cpcds",
+        "cache/fhir",
+        "cache/validator",
+        "sample_data"
+    ]
+    
+    for directory in cache_dirs:
+        os.makedirs(directory, exist_ok=True)
+        
+# Ensure cache directories exist
+ensure_cache_dirs()
+
 # Set page configuration
 st.set_page_config(
     page_title="Parker: Healthcare Data to FHIR HL7 Mapper",
