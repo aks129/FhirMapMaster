@@ -206,7 +206,8 @@ def enrich_fhir_resources_with_ig_profiles(resources, standard):
         dict: Enriched FHIR resource definitions
     """
     # Make a deep copy to avoid modifying the original
-    enriched = resources.copy()
+    import copy
+    enriched = copy.deepcopy(resources)
     
     try:
         if standard == "US Core":
@@ -225,11 +226,76 @@ def enrich_fhir_resources_with_ig_profiles(resources, standard):
                 
                 # Merge fields, prioritizing IG-specific definitions
                 if "fields" in resource_data:
-                    for field, description in resource_data["fields"].items():
-                        enriched[resource_name]["fields"][field] = description
+                    for field, field_data in resource_data["fields"].items():
+                        # If the field exists and it's a string description, convert to dict first
+                        if field in enriched[resource_name]["fields"]:
+                            if isinstance(enriched[resource_name]["fields"][field], str):
+                                current_description = enriched[resource_name]["fields"][field]
+                                enriched[resource_name]["fields"][field] = {
+                                    "description": current_description
+                                }
+                            
+                            # Extract and add cardinality information if available
+                            if isinstance(field_data, dict):
+                                # Extract cardinality from the differential element
+                                if "min" in field_data and "max" in field_data:
+                                    min_occurs = field_data.get("min", 0)
+                                    max_occurs = field_data.get("max", "*")
+                                    cardinality = f"{min_occurs}..{max_occurs}"
+                                    
+                                    # Update with cardinality and must-support info
+                                    enriched[resource_name]["fields"][field]["cardinality"] = cardinality
+                                    enriched[resource_name]["fields"][field]["min"] = min_occurs
+                                    enriched[resource_name]["fields"][field]["max"] = max_occurs
+                                    
+                                    # Add must-support flag if available
+                                    must_support = field_data.get("mustSupport", False)
+                                    enriched[resource_name]["fields"][field]["mustSupport"] = must_support
+                                
+                                # Update or add description
+                                if "description" in field_data:
+                                    enriched[resource_name]["fields"][field]["description"] = field_data["description"]
+                                elif isinstance(field_data, str):
+                                    # If field_data is just a string, it's a description
+                                    enriched[resource_name]["fields"][field]["description"] = field_data
+                            else:
+                                # If field_data is just a string, it's a description
+                                enriched[resource_name]["fields"][field]["description"] = field_data
+                        else:
+                            # Field doesn't exist yet, add it
+                            if isinstance(field_data, dict):
+                                enriched[resource_name]["fields"][field] = field_data
+                            else:
+                                # Just a string description
+                                enriched[resource_name]["fields"][field] = {
+                                    "description": field_data,
+                                    "cardinality": "0..1",  # Default cardinality
+                                    "min": 0,
+                                    "max": "1",
+                                    "mustSupport": False
+                                }
             else:
                 # If the resource doesn't exist in our base definitions, add it
                 enriched[resource_name] = resource_data
+                
+        # Ensure every field has cardinality info by providing defaults where missing
+        for resource_name, resource_data in enriched.items():
+            for field, field_data in resource_data.get("fields", {}).items():
+                if isinstance(field_data, str):
+                    # Convert string descriptions to dict
+                    enriched[resource_name]["fields"][field] = {
+                        "description": field_data,
+                        "cardinality": "0..1",  # Default cardinality
+                        "min": 0,
+                        "max": "1",
+                        "mustSupport": False
+                    }
+                elif isinstance(field_data, dict) and "cardinality" not in field_data:
+                    # Add default cardinality where missing
+                    field_data["cardinality"] = "0..1"
+                    field_data["min"] = 0
+                    field_data["max"] = "1"
+                    field_data["mustSupport"] = False
                 
         return enriched
         
