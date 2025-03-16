@@ -71,18 +71,25 @@ def render_mapping_interface():
                              if r in selected_resources]
         else:
             resource_names = list(st.session_state.suggested_mappings.keys())
+        
+        # First, handle and map unmapped columns to reduce the number of unmapped items    
+        st.subheader("🕸️ Step 1: Parker's Automatic Web Mapping")
+        
+        # Display unmapped columns and auto-map with Parker AI first
+        handle_unmapped_columns(df, fhir_standard)
+        st.markdown("---")
             
-        # Add tabs for selected resources plus one for unmapped columns
-        resource_tabs = st.tabs(resource_names + ["Unmapped Columns"])
+        # Now, show resource tabs for manual refinement
+        st.subheader("🕸️ Step 2: Refine Your Resource Mappings")
+        st.markdown("Review and refine Parker's mapping suggestions for each selected resource.")
+        
+        # Add tabs for selected resources 
+        resource_tabs = st.tabs(resource_names)
         
         # Process each resource tab
         for i, resource_name in enumerate(resource_names):
             with resource_tabs[i]:
                 display_resource_mapping(resource_name, fhir_resources, df)
-        
-        # Handle unmapped columns
-        with resource_tabs[-1]:
-            handle_unmapped_columns(df, fhir_standard)
         
         # Generate final mapping preview with Spider-Man theme
         st.subheader("🕸️ Parker's Web of Connections - Final Preview")
