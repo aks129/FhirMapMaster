@@ -200,13 +200,17 @@ def render_mapping_interface():
         st.subheader("🕸️ Step 2: Refine Your Resource Mappings")
         st.markdown("Review and refine Parker's mapping suggestions for each selected resource.")
         
-        # Add tabs for selected resources 
-        resource_tabs = st.tabs(resource_names)
-        
-        # Process each resource tab
-        for i, resource_name in enumerate(resource_names):
-            with resource_tabs[i]:
-                display_resource_mapping(resource_name, fhir_resources, df)
+        # Add tabs for selected resources
+        # Make sure resource_names is not empty to avoid Streamlit error
+        if resource_names:
+            resource_tabs = st.tabs(resource_names)
+            
+            # Process each resource tab
+            for i, resource_name in enumerate(resource_names):
+                with resource_tabs[i]:
+                    display_resource_mapping(resource_name, fhir_resources, df)
+        else:
+            st.warning("No resources selected for mapping. Please select resources in Step 2.")
         
         # Generate final mapping preview with Spider-Man theme
         st.subheader("🕸️ Parker's Web of Connections - Final Preview")
