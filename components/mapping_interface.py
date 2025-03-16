@@ -160,9 +160,15 @@ def render_mapping_interface():
                     - 🟢 **Green**: All required and must-support fields satisfied
                     """)
                     
-                    # Calculate compliance metrics
+                    # Calculate compliance metrics but only for selected resources
+                    selected_resources = st.session_state.selected_resources.keys() if hasattr(st.session_state, 'selected_resources') else []
+                    
+                    # Filter finalized mappings to only include selected resources
+                    filtered_mappings = {resource: mappings for resource, mappings in st.session_state.finalized_mappings.items()
+                                       if resource in selected_resources}
+                    
                     compliance_metrics = analyze_mapping_compliance(
-                        st.session_state.finalized_mappings, 
+                        filtered_mappings,
                         fhir_resources,
                         fhir_standard
                     )
@@ -456,7 +462,7 @@ def handle_composite_field_mapping(resource_name, finalized_mappings, df):
                 "column_patterns": {
                     "address.line": ["address", "street", "addr", "address_line", "line1", "address_line1"],
                     "address.city": ["city", "town", "municipality"],
-                    "address.state": ["state", "province", "region", "st"],
+                    "address.state": ["state", "province", "region", "st", "stateprovince"],
                     "address.postalCode": ["zip", "zipcode", "postal_code", "postalcode", "zip_code"],
                     "address.country": ["country", "nation"]
                 }
@@ -500,6 +506,11 @@ def handle_composite_field_mapping(resource_name, finalized_mappings, df):
             # Look for column matches
             for column in df.columns:
                 col_lower = column.lower().replace("_", "").replace("-", "").replace(" ", "")
+                
+                # Skip columns with 'vital' or 'bp' for address fields
+                if ("vital" in col_lower or "bp" in col_lower) and "address" in component.lower():
+                    continue
+                
                 for pattern in patterns:
                     pattern_lower = pattern.lower().replace("_", "").replace("-", "").replace(" ", "")
                     
