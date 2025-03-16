@@ -280,21 +280,29 @@ def render_mapping_interface():
                     - 🟢 **Green**: All required and must-support fields satisfied
                     """)
                     
-                    # Calculate compliance metrics but only for selected resources
-                    selected_resources = st.session_state.selected_resources.keys() if hasattr(st.session_state, 'selected_resources') else []
-                    
-                    # Filter finalized mappings to only include selected resources
-                    filtered_mappings = {resource: mappings for resource, mappings in st.session_state.finalized_mappings.items()
-                                       if resource in selected_resources}
-                    
-                    compliance_metrics = analyze_mapping_compliance(
-                        filtered_mappings,
-                        fhir_resources,
-                        fhir_standard
-                    )
-                    
-                    # Render compliance metrics
-                    render_compliance_metrics(compliance_metrics)
+                    # Calculate compliance metrics - ensure we have resources to measure
+                    if hasattr(st.session_state, 'selected_resources') and st.session_state.selected_resources:
+                        selected_resources = st.session_state.selected_resources.keys()
+                        
+                        # Filter finalized mappings to only include selected resources
+                        filtered_mappings = {resource: mappings for resource, mappings in st.session_state.finalized_mappings.items()
+                                           if resource in selected_resources}
+                        
+                        # Only calculate and render metrics if we have mappings
+                        if filtered_mappings:
+                            try:
+                                compliance_metrics = analyze_mapping_compliance(
+                                    filtered_mappings,
+                                    fhir_resources,
+                                    fhir_standard
+                                )
+                                
+                                # Render compliance metrics
+                                render_compliance_metrics(compliance_metrics)
+                            except Exception as e:
+                                st.warning(f"Could not analyze compliance metrics: {str(e)}")
+                        else:
+                            st.info("🕸️ Map at least one resource to see compliance metrics.")
                 
                 with tab2:
                     # Filter to show only mapped fields
@@ -432,16 +440,17 @@ def display_resource_mapping(resource_name, fhir_resources, df):
     processed_fields = set()  # Track fields we've already processed
     
     # First, show parent fields with FHIR datatypes and their component fields
-    for field, description in resource_def.get('fields', {}).items():
-        # Skip if not a parent field of a composite field
-        if field not in composite_fields:
-            continue
-            
+    for field, field_info in composite_fields.items():
+        datatype = field_info.get('datatype', '')
+        components = field_info.get('components', [])
+        description = resource_def.get('fields', {}).get(field, 'Complex field')
+        
         # Create a container for this parent field
         with st.container():
             st.markdown(f"""
             <div style='background-color: #f0f8ff; padding: 10px; border-radius: 5px; margin: 10px 0;'>
-                <h4 style='margin: 0;'>🧩 {field} ({composite_fields[field]['datatype']})</h4>
+                <h4 style='margin: 0;'>🧩 {field} ({datatype})</h4>
+                <p style='margin: 5px 0 0 0; font-size: 0.9em;'>{description}</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -453,7 +462,7 @@ def display_resource_mapping(resource_name, fhir_resources, df):
                 has_composite_mapping = True
                 
                 parent_mapping = st.session_state.finalized_mappings[resource_name][field]
-                datatype = parent_mapping.get('datatype')
+                datatype = parent_mapping.get('datatype', field_info.get('datatype', ''))
                 
                 # Show composite field overview
                 st.markdown(f"""
