@@ -420,6 +420,10 @@ def display_resource_mapping(resource_name, fhir_resources, df):
                 # Display confidence score with appropriate color and Spider-Man theme
                 if current_mapping is not None:
                     confidence = current_mapping['confidence']
+                    mapping_type = current_mapping.get('mapping_type', 'direct')
+                    match_type = current_mapping.get('match_type', 'standard')
+                    datatype = current_mapping.get('datatype', None)
+                    
                     if confidence >= 0.8:
                         confidence_icon = "🟢"
                         confidence_text = "Strong"
@@ -434,21 +438,96 @@ def display_resource_mapping(resource_name, fhir_resources, df):
                         confidence_text = "Weak"
                     
                     confidence_color = "green" if confidence >= 0.7 else "orange" if confidence >= 0.4 else "red"
+                    
+                    # Show confidence score
                     st.markdown(f"<p style='color:{confidence_color}'>{confidence_icon} {confidence_text}<br>Spider-Sense: {confidence:.2f}</p>", unsafe_allow_html=True)
+                    
+                    # Add special badges for FHIR datatypes
+                    if mapping_type == "FHIR_DATATYPE" or datatype:
+                        datatype_name = datatype if datatype else mapping_type.split('_')[-1]
+                        st.markdown(f"""
+                        <div style='background-color: #e6f7ff; padding: 5px; border-radius: 5px; margin-top: 5px;'>
+                          <span style='color: #0078d7; font-weight: bold;'>🧩 FHIR {datatype_name}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # If this is a composite field, show its parts
+                        if match_type == "fhir_datatype_composite":
+                            with st.expander("View Component Fields"):
+                                # Display components based on datatype
+                                if datatype == "HumanName":
+                                    components = {
+                                        "Given Name": current_mapping.get("given"),
+                                        "Family Name": current_mapping.get("family"),
+                                        "Prefix": current_mapping.get("prefix"),
+                                        "Suffix": current_mapping.get("suffix")
+                                    }
+                                elif datatype == "Address":
+                                    components = {
+                                        "Line": current_mapping.get("line"),
+                                        "City": current_mapping.get("city"),
+                                        "State": current_mapping.get("state"),
+                                        "Postal Code": current_mapping.get("postalCode"),
+                                        "Country": current_mapping.get("country")
+                                    }
+                                elif datatype == "ContactPoint":
+                                    components = {
+                                        "Value": current_mapping.get("value"),
+                                        "System": current_mapping.get("system"),
+                                        "Use": current_mapping.get("use")
+                                    }
+                                elif datatype == "CodeableConcept":
+                                    components = {
+                                        "Code": current_mapping.get("code"),
+                                        "System": current_mapping.get("system"),
+                                        "Display": current_mapping.get("display"),
+                                        "Text": current_mapping.get("text")
+                                    }
+                                else:
+                                    components = {}
+                                
+                                # Display the component fields
+                                for label, column in components.items():
+                                    if column:
+                                        st.markdown(f"**{label}**: {column}")
+                                    
+                    # Show match type badge
+                    if match_type and match_type != "standard":
+                        match_color = {
+                            "composite_pattern": "#e6f7e6", 
+                            "fhir_datatype_composite": "#e6f7ff",
+                            "llm_suggestion": "#fff7e6",
+                            "claims_pattern": "#ffebeb"
+                        }.get(match_type, "#f7f7f7")
+                        
+                        match_text = {
+                            "composite_pattern": "Pattern Match",
+                            "fhir_datatype_composite": "FHIR Datatype",
+                            "llm_suggestion": "AI Suggestion",
+                            "claims_pattern": "Claims Pattern"
+                        }.get(match_type, match_type.replace("_", " ").title())
+                        
+                        st.markdown(f"""
+                        <div style='background-color: {match_color}; padding: 5px; border-radius: 5px; margin-top: 5px;'>
+                          <span style='font-weight: bold;'>🔍 {match_text}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
 
 def handle_composite_field_mapping(resource_name, finalized_mappings, df):
     """
     Handle composite fields like name.given/name.family for Patient and other resources.
+    Maps fields to proper FHIR datatypes like HumanName, Address, ContactPoint.
     
     Args:
         resource_name: Name of the resource being mapped
         finalized_mappings: Dict of finalized mappings
         df: DataFrame containing the data
     """
-    # Composite field definitions
+    # Composite field definitions with FHIR datatype information
     composite_fields = {
         "Patient": {
             "name": {
+                "fhir_datatype": "HumanName",
                 "components": ["name.given", "name.family", "name.prefix", "name.suffix"],
                 "column_patterns": {
                     "name.given": ["first_name", "given_name", "fname", "firstname"],
@@ -458,6 +537,7 @@ def handle_composite_field_mapping(resource_name, finalized_mappings, df):
                 }
             },
             "address": {
+                "fhir_datatype": "Address",
                 "components": ["address.line", "address.city", "address.state", "address.postalCode", "address.country"],
                 "column_patterns": {
                     "address.line": ["address", "street", "addr", "address_line", "line1", "address_line1"],
@@ -466,10 +546,63 @@ def handle_composite_field_mapping(resource_name, finalized_mappings, df):
                     "address.postalCode": ["zip", "zipcode", "postal_code", "postalcode", "zip_code"],
                     "address.country": ["country", "nation"]
                 }
+            },
+            "telecom": {
+                "fhir_datatype": "ContactPoint",
+                "components": ["telecom.value", "telecom.system", "telecom.use"],
+                "column_patterns": {
+                    "telecom.value": ["phone", "telephone", "phone_number", "contact", "email", "email_address"],
+                    "telecom.system": ["phone_type", "contact_type", "telecom_system"],
+                    "telecom.use": ["phone_use", "contact_use", "telecom_use"]
+                }
+            }
+        },
+        "Practitioner": {
+            "name": {
+                "fhir_datatype": "HumanName",
+                "components": ["name.given", "name.family", "name.prefix", "name.suffix"],
+                "column_patterns": {
+                    "name.given": ["provider_first_name", "provider_given_name", "dr_first_name", "physician_first"],
+                    "name.family": ["provider_last_name", "provider_family_name", "dr_last_name", "physician_last"],
+                    "name.prefix": ["provider_prefix", "provider_title", "dr_title"],
+                    "name.suffix": ["provider_suffix", "dr_suffix"]
+                }
+            },
+            "telecom": {
+                "fhir_datatype": "ContactPoint",
+                "components": ["telecom.value", "telecom.system", "telecom.use"],
+                "column_patterns": {
+                    "telecom.value": ["provider_phone", "provider_email", "dr_phone", "doctor_contact"],
+                    "telecom.system": ["provider_phone_type", "provider_contact_type"],
+                    "telecom.use": ["provider_phone_use", "provider_contact_use"]
+                }
+            }
+        },
+        "Organization": {
+            "address": {
+                "fhir_datatype": "Address",
+                "components": ["address.line", "address.city", "address.state", "address.postalCode", "address.country"],
+                "column_patterns": {
+                    "address.line": ["org_address", "facility_address", "hospital_address", "facility_street"],
+                    "address.city": ["org_city", "facility_city", "hospital_city"],
+                    "address.state": ["org_state", "facility_state", "hospital_state"],
+                    "address.postalCode": ["org_zip", "facility_zip", "hospital_zip"],
+                    "address.country": ["org_country", "facility_country", "hospital_country"]
+                }
+            },
+            "telecom": {
+                "fhir_datatype": "ContactPoint",
+                "components": ["telecom.value", "telecom.system", "telecom.use"],
+                "column_patterns": {
+                    "telecom.value": ["org_phone", "facility_phone", "hospital_phone", "org_email", "facility_email"],
+                    "telecom.system": ["org_phone_type", "facility_phone_type"],
+                    "telecom.use": ["org_phone_use", "facility_phone_use"]
+                }
             }
         },
         "Condition": {
             "code": {
+                "fhir_datatype": "CodeableConcept",
                 "components": ["code.coding.code", "code.coding.system", "code.coding.display", "code.text"],
                 "column_patterns": {
                     "code.coding.code": ["condition_code", "dx_code", "diagnosis_code", "icd_code", "diag_code"],
@@ -492,11 +625,15 @@ def handle_composite_field_mapping(resource_name, finalized_mappings, df):
     for composite_name, composite_info in resource_composites.items():
         components = composite_info["components"]
         column_patterns = composite_info["column_patterns"]
+        fhir_datatype = composite_info.get("fhir_datatype")
         
         # If parent field is already mapped, skip
         if resource_name in finalized_mappings and composite_name in finalized_mappings[resource_name]:
             continue
             
+        # Track component matches for this composite field
+        component_matches = {}
+        
         # Find matching columns for each component
         for component, patterns in column_patterns.items():
             # Skip if component is already mapped
@@ -527,16 +664,92 @@ def handle_composite_field_mapping(resource_name, finalized_mappings, df):
                             "match_type": "composite_pattern"
                         }
                         
-                        # Also add parent field if not already present
-                        if composite_name not in finalized_mappings[resource_name]:
-                            finalized_mappings[resource_name][composite_name] = {
-                                "column": f"[Composite: {component}]",
-                                "confidence": 0.85,
-                                "match_type": "composite_parent"
-                            }
+                        # Track this match for creating the FHIR datatype mapping
+                        component_matches[component] = column
                         
                         # Once we find a match, break
                         break
+        
+        # If we have component matches, create a FHIR datatype mapping
+        if component_matches and fhir_datatype:
+            # Only create parent field if not already present
+            if composite_name not in finalized_mappings.get(resource_name, {}):
+                # Create appropriate mapping based on datatype
+                if fhir_datatype == "HumanName":
+                    given_field = component_matches.get("name.given")
+                    family_field = component_matches.get("name.family")
+                    prefix_field = component_matches.get("name.prefix")
+                    suffix_field = component_matches.get("name.suffix")
+                    
+                    # Only create if we have at least one of given or family
+                    if given_field or family_field:
+                        finalized_mappings[resource_name][composite_name] = {
+                            "mapping_type": "FHIR_DATATYPE",
+                            "datatype": "HumanName",
+                            "given": given_field,
+                            "family": family_field,
+                            "prefix": prefix_field,
+                            "suffix": suffix_field,
+                            "confidence": 0.9,
+                            "match_type": "fhir_datatype_composite"
+                        }
+                
+                elif fhir_datatype == "Address":
+                    line_field = component_matches.get("address.line")
+                    city_field = component_matches.get("address.city")
+                    state_field = component_matches.get("address.state")
+                    postal_code_field = component_matches.get("address.postalCode")
+                    country_field = component_matches.get("address.country")
+                    
+                    # Only create if we have at least line or city
+                    if line_field or city_field:
+                        finalized_mappings[resource_name][composite_name] = {
+                            "mapping_type": "FHIR_DATATYPE",
+                            "datatype": "Address",
+                            "line": line_field,
+                            "city": city_field, 
+                            "state": state_field,
+                            "postalCode": postal_code_field,
+                            "country": country_field,
+                            "confidence": 0.9,
+                            "match_type": "fhir_datatype_composite"
+                        }
+                
+                elif fhir_datatype == "ContactPoint":
+                    value_field = component_matches.get("telecom.value")
+                    system_field = component_matches.get("telecom.system")
+                    use_field = component_matches.get("telecom.use")
+                    
+                    # Only create if we have at least a value
+                    if value_field:
+                        finalized_mappings[resource_name][composite_name] = {
+                            "mapping_type": "FHIR_DATATYPE",
+                            "datatype": "ContactPoint",
+                            "value": value_field,
+                            "system": system_field,
+                            "use": use_field,
+                            "confidence": 0.9,
+                            "match_type": "fhir_datatype_composite"
+                        }
+                
+                elif fhir_datatype == "CodeableConcept":
+                    code_field = component_matches.get("code.coding.code")
+                    system_field = component_matches.get("code.coding.system")
+                    display_field = component_matches.get("code.coding.display")
+                    text_field = component_matches.get("code.text")
+                    
+                    # Only create if we have at least code or text
+                    if code_field or text_field:
+                        finalized_mappings[resource_name][composite_name] = {
+                            "mapping_type": "FHIR_DATATYPE",
+                            "datatype": "CodeableConcept",
+                            "code": code_field,
+                            "system": system_field,
+                            "display": display_field,
+                            "text": text_field,
+                            "confidence": 0.9,
+                            "match_type": "fhir_datatype_composite"
+                        }
                 
 def handle_unmapped_columns(df, fhir_standard):
     """
