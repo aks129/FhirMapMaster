@@ -56,6 +56,16 @@ if 'llm_suggestions' not in st.session_state:
 
 # App title and description with Parker branding
 st.title("🕸️ Parker: Your Friendly Healthcare Data Mapper 🕸️")
+
+# Add prominent disclaimer banner
+st.warning("""
+⚠️ **DISCLAIMER: EXPERIMENTAL SOFTWARE - PROOF OF CONCEPT ONLY** ⚠️
+
+This is experimental software intended for proof-of-concept purposes only.
+Do NOT load Protected Health Information (PHI) or any confidential data into this tool.
+Your usage of this tool is entirely at your own discretion and risk.
+""")
+
 st.markdown("""
 ### *"With great healthcare data comes great interoperability responsibility!"*
 
@@ -195,5 +205,7 @@ st.markdown("""
     <p><i>"Mapping healthcare data with great power and great responsibility!"</i></p>
     <p>© 2025 Parker Industries | Healthcare Data to FHIR R4B Mapping Tool</p>
     <p>Maps from HL7 v2, C-CDA, and other formats to FHIR R4B with full IG validation</p>
+    <p style="color: #ff0000;"><b>DISCLAIMER: This is experimental software for proof of concept only.<br/>
+    Do NOT load PHI or confidential data. Use at your own discretion and risk.</b></p>
 </div>
 """, unsafe_allow_html=True)
