@@ -3,6 +3,7 @@ import pandas as pd
 import json
 from utils.fhir_mapper import suggest_mappings, get_fhir_resources, generate_fhir_structure
 from utils.llm_service import initialize_anthropic_client, get_multiple_mapping_suggestions, analyze_complex_mapping
+from utils.compliance_metrics import analyze_mapping_compliance, render_compliance_metrics
 
 def render_mapping_interface():
     """
@@ -149,6 +150,25 @@ def render_mapping_interface():
                         st.metric("Mapped Columns", mapped_count)
                     with col3:
                         st.metric("Mapping Coverage", f"{mapping_percentage:.1f}%")
+                        
+                    # Add FHIR Profile compliance metrics
+                    st.markdown("### 🕸️ FHIR Profile Compliance")
+                    st.markdown("""
+                    Parker's Traffic Light System for FHIR Compliance:
+                    - 🔴 **Red**: Missing required fields (cardinality 1..x)
+                    - 🟡 **Yellow**: All required fields satisfied, some must-support fields missing
+                    - 🟢 **Green**: All required and must-support fields satisfied
+                    """)
+                    
+                    # Calculate compliance metrics
+                    compliance_metrics = analyze_mapping_compliance(
+                        st.session_state.finalized_mappings, 
+                        fhir_resources,
+                        fhir_standard
+                    )
+                    
+                    # Render compliance metrics
+                    render_compliance_metrics(compliance_metrics)
                 
                 with tab2:
                     # Filter to show only mapped fields
