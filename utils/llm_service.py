@@ -119,31 +119,42 @@ def analyze_unmapped_column(client, column_name, sample_values, fhir_standard, i
                 'fields': resource_data['fields']
             }
     
-    # Get CPCDS mapping knowledge if this is CARIN BB
-    cpcds_guidance = ""
+    # Get claims data mapping knowledge if this is CARIN BB
+    claims_guidance = ""
     if fhir_standard == "CARIN BB":
-        # Import the CPCDS mapping module
+        # Import the claims mapping module
         try:
-            from utils.cpcds_mapping import get_cpcds_prompt_enhancement
-            cpcds_guidance = """
-## CARIN BB CPCDS Mapping Guidelines
+            from utils.cpcds_mapping import get_claims_mapping_prompt_enhancement
+            claims_guidance = """
+## CARIN BB Claims Data Mapping Guidelines
 
-When mapping healthcare claims data, follow these patterns from the CARIN BB Implementation Guide's CPCDS mapping:
+When mapping healthcare claims data, follow these patterns from the CARIN BB Implementation Guide:
 
-- claim_id, claimid → ExplanationOfBenefit.identifier
-- patient_id, member_id → Patient.identifier
-- payer_id, payer → Coverage.payor
-- service_date, date_of_service → ExplanationOfBenefit.billablePeriod.start
-- provider_id, provider → ExplanationOfBenefit.provider
+### ExplanationOfBenefit Resource
+- **claim_id**, **claim_number**, **claimid** → ExplanationOfBenefit.identifier
+- **service_date**, **date_of_service**, **dos** → ExplanationOfBenefit.billablePeriod.start
+- **paid_amount**, **payment_amount** → ExplanationOfBenefit.item.adjudication.amount
+- **diagnosis_code**, **diag_code**, **dx1** → ExplanationOfBenefit.diagnosis.diagnosisCodeableConcept
+- **procedure_code**, **proc_code**, **cpt_code** → ExplanationOfBenefit.item.productOrService
+- **ndc_code**, **ndc** → ExplanationOfBenefit.item.productOrService (for pharmacy claims)
+- **revenue_code**, **rev_code** → ExplanationOfBenefit.item.revenue (for institutional claims)
 
-The CPCDS mapping is the official CARIN BB Implementation Guide mapping from claims data.
+### Patient Resource
+- **patient_id**, **patientid**, **member_id** → Patient.identifier
+- **patient_first_name** → Patient.name.given
+- **patient_last_name** → Patient.name.family
+
+### Coverage Resource
+- **payer_id**, **insurer_id** → Coverage.payor.identifier
+- **payer_name** → Coverage.payor.display
+- **group_number** → Coverage.group
 """
-            # Get enhanced guidance if available
-            enhancement = get_cpcds_prompt_enhancement()
+            # Get enhanced guidance from our comprehensive mapping knowledge base
+            enhancement = get_claims_mapping_prompt_enhancement()
             if enhancement and len(enhancement) > 100:  # Sanity check that we got real enhancement
-                cpcds_guidance = enhancement
+                claims_guidance = enhancement
         except Exception as e:
-            print(f"Error getting CPCDS prompt enhancement: {str(e)}")
+            print(f"Error getting claims mapping prompt enhancement: {str(e)}")
     
     # Create the prompt with enhanced FHIR knowledge and CPCDS guidance
     prompt = f"""
@@ -154,7 +165,7 @@ I have a column in my healthcare dataset that needs mapping to FHIR:
 Column name: {column_name}
 Sample values: {sample_str}
 
-{cpcds_guidance}
+{claims_guidance}
 
 Here are the available FHIR resources and fields in the {fhir_standard} Implementation Guide:
 {json.dumps(resource_info, indent=2)}
