@@ -7,7 +7,13 @@ def render_data_profiler():
     """
     Render the data profiling component.
     """
-    st.header("Step 2: Data Profiling")
+    st.header("🕸️ Step 2: Parker's Spider-Sense Data Analysis")
+    
+    st.markdown("""
+    ### *"My data-sense is tingling!"*
+    
+    Parker's enhanced spider-sense analyzes your healthcare data, finding patterns and connections that others miss.
+    """)
     
     # Only continue if data exists in session state
     if st.session_state.df is not None:
@@ -20,18 +26,18 @@ def render_data_profiler():
             date_columns = detect_date_columns(df)
             suggestions = suggest_data_quality_improvements(df, profile)
         
-        # Data overview
-        st.subheader("Data Overview")
+        # Data overview with Spider-Man theme
+        st.subheader("🕸️ Parker's Data Web Overview")
         col1, col2, col3 = st.columns(3)
-        col1.metric("Total Rows", profile['row_count'])
-        col2.metric("Total Columns", profile['column_count'])
-        col3.metric("Potential ID Columns", len(id_columns))
+        col1.metric("Web Rows", profile['row_count'], help="Total number of rows in your data")
+        col2.metric("Web Columns", profile['column_count'], help="Total number of columns in your data")
+        col3.metric("Spider-Detected IDs", len(id_columns), help="Columns that Parker detected as likely identifiers")
         
-        # Column details
-        st.subheader("Column Details")
+        # Column details with Spider-Man theme
+        st.subheader("🕸️ Parker's Web Structure Analysis")
         
-        # Create a tab for each column category and a tab for all columns
-        tab_all, tab_id, tab_date, tab_other = st.tabs(["All Columns", "ID Columns", "Date Columns", "Other Columns"])
+        # Create a tab for each column category and a tab for all columns with Spider-Man theme
+        tab_all, tab_id, tab_date, tab_other = st.tabs(["🕸️ All Strands", "🆔 Identity Strands", "📅 Timeline Strands", "🧩 Other Strands"])
         
         with tab_all:
             show_column_details(df, profile, list(df.columns))
@@ -55,16 +61,16 @@ def render_data_profiler():
             else:
                 st.info("No other columns available.")
         
-        # Data quality suggestions
-        st.subheader("Data Quality Suggestions")
+        # Data quality suggestions with Spider-Man theme
+        st.subheader("🕸️ Parker's Spider-Sense Alerts")
         if suggestions:
             for suggestion in suggestions:
-                st.info(suggestion)
+                st.info(f"🕷️ {suggestion}")
         else:
-            st.success("No data quality issues detected.")
+            st.success("🕸️ Parker's Spider-Sense detects no data quality issues! Your data is clean and ready for action!")
         
-        # Missing values visualization
-        st.subheader("Missing Values")
+        # Missing values visualization with Spider-Man theme
+        st.subheader("🕳️ Missing Data Voids in the Web")
         missing_data = pd.DataFrame({
             'Column': profile['column_stats'].keys(),
             'Missing Count': [stats['missing_count'] for stats in profile['column_stats'].values()],
@@ -78,16 +84,17 @@ def render_data_profiler():
                 x='Column',
                 y='Missing Percentage',
                 color='Missing Percentage',
-                title='Missing Values by Column',
+                color_continuous_scale='reds',
+                title='Gaps in Your Data Web - Missing Values by Column',
                 labels={'Missing Percentage': 'Missing Values (%)'},
                 height=400
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.success("No missing values in the dataset.")
+            st.success("🕸️ Amazing! Parker detects no missing values in your data web!")
         
-        # Data cardinality visualization
-        st.subheader("Column Cardinality")
+        # Data cardinality visualization with Spider-Man theme
+        st.subheader("🔄 Web Strand Uniqueness Analysis")
         cardinality_data = pd.DataFrame({
             'Column': profile['column_stats'].keys(),
             'Unique Count': [stats['unique_count'] for stats in profile['column_stats'].values()],

@@ -6,14 +6,19 @@ def render_file_uploader():
     """
     Render the file upload component and handle file processing.
     """
-    st.header("Step 1: Upload Healthcare Data")
+    st.header("🕸️ Step 1: Cast Your Web and Capture Data")
     
     st.markdown("""
-    Upload your healthcare data file to begin the mapping process. The tool supports various file formats:
-    - CSV (Comma-Separated Values)
-    - Excel (XLSX, XLS)
-    - JSON
-    - Text files
+    ### *"Your friendly neighborhood data mapper is ready to help!"*
+    
+    Cast your web and upload your healthcare data file to begin the Parker mapping process! 
+    Just like Peter Parker can sense danger, Parker can sense your data structure and help transform it.
+    
+    **Parker's web can capture these formats:**
+    - 🕸️ CSV (Comma-Separated Values)
+    - 🕸️ Excel (XLSX, XLS)
+    - 🕸️ JSON
+    - 🕸️ Text files
     """)
     
     # File uploader widget
@@ -31,20 +36,20 @@ def render_file_uploader():
                 df = load_data(uploaded_file)
                 
                 if df is not None and not df.empty:
-                    st.success(f"File successfully loaded: {uploaded_file.name}")
+                    st.success(f"🕸️ Web successfully captured: {uploaded_file.name}")
                     
                     # Display basic info about the data
-                    st.subheader("Data Preview")
+                    st.subheader("🕷️ Spider-Sense Data Preview")
                     st.dataframe(df.head(5), use_container_width=True)
                     
-                    st.text(f"Rows: {len(df)}, Columns: {len(df.columns)}")
+                    st.markdown(f"**Web Size:** {len(df)} rows × {len(df.columns)} columns")
                     
                     # Store the data and file in session state
                     st.session_state.uploaded_file = uploaded_file
                     st.session_state.df = df
                     
                     # Show continue button
-                    if st.button("Continue to Data Profiling"):
+                    if st.button("🕸️ Activate Spider-Sense Data Profiling 🕸️"):
                         st.rerun()
                 else:
                     st.error("Failed to load data from the file. Please check the file format.")
