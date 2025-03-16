@@ -22,17 +22,23 @@ def render_mapping_interface():
         df = st.session_state.df
         fhir_standard = st.session_state.fhir_standard
         
+        # Get the version of the implementation guide
+        ig_version = st.session_state.ig_version
+        
         # Initialize mappings if not already present
         if 'suggested_mappings' not in st.session_state:
             with st.spinner("🕸️ Parker is spinning the mapping web..."):
-                st.session_state.suggested_mappings = suggest_mappings(df, fhir_standard)
+                st.session_state.suggested_mappings = suggest_mappings(df, fhir_standard, ig_version)
         
         # Initialize LLM client for unmapped fields
         if 'llm_client' not in st.session_state:
             st.session_state.llm_client = initialize_anthropic_client()
         
-        # Get FHIR resources for the selected standard
-        fhir_resources = get_fhir_resources(fhir_standard)
+        # Get FHIR resources for the selected standard and version
+        fhir_resources = get_fhir_resources(fhir_standard, ig_version)
+        
+        # Filter to only include selected resources
+        selected_resources = st.session_state.selected_resources.keys() if hasattr(st.session_state, 'selected_resources') else []
         
         # Display mapping information with Parker theme
         st.subheader(f"🕸️ Connecting Your Data to {fhir_standard}")
@@ -58,9 +64,15 @@ def render_mapping_interface():
         
         # Show available resources and mappings
         tabs = []
-        resource_names = list(st.session_state.suggested_mappings.keys())
         
-        # Add tabs for available resources plus one for unmapped columns
+        # Filter the suggested mappings to only include selected resources
+        if selected_resources:
+            resource_names = [r for r in list(st.session_state.suggested_mappings.keys()) 
+                             if r in selected_resources]
+        else:
+            resource_names = list(st.session_state.suggested_mappings.keys())
+            
+        # Add tabs for selected resources plus one for unmapped columns
         resource_tabs = st.tabs(resource_names + ["Unmapped Columns"])
         
         # Process each resource tab

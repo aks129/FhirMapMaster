@@ -147,12 +147,13 @@ CARIN_BB_RESOURCES = {
     }
 }
 
-def get_fhir_resources(standard):
+def get_fhir_resources(standard, version=""):
     """
-    Get FHIR resource definitions based on the selected standard.
+    Get FHIR resource definitions based on the selected standard and version.
     
     Args:
         standard: The FHIR standard to use (US Core or CARIN BB)
+        version: The version of the implementation guide (optional)
     
     Returns:
         dict containing resource definitions
@@ -212,18 +213,19 @@ def get_fhir_resources(standard):
         
     return resources
 
-def suggest_mappings(df, standard):
+def suggest_mappings(df, standard, version=""):
     """
     Suggest mappings from the dataframe columns to FHIR resources.
     
     Args:
         df: pandas DataFrame containing the data
         standard: The FHIR standard to use (US Core or CARIN BB)
+        version: The version of the implementation guide (optional)
     
     Returns:
         dict containing suggested mappings and confidence scores
     """
-    resources = get_fhir_resources(standard)
+    resources = get_fhir_resources(standard, version)
     mappings = {}
     
     # Function to calculate similarity score between column name and FHIR field
@@ -401,13 +403,14 @@ def suggest_mappings(df, standard):
     
     return mappings
 
-def generate_fhir_structure(mappings, standard):
+def generate_fhir_structure(mappings, standard, version=""):
     """
     Generate a FHIR resource structure based on the mappings.
     
     Args:
         mappings: Dict containing the mappings from columns to FHIR fields
         standard: The FHIR standard used
+        version: The version of the implementation guide (optional)
     
     Returns:
         dict containing the FHIR resource structure
@@ -422,7 +425,7 @@ def generate_fhir_structure(mappings, standard):
     
     return fhir_structure
 
-def generate_python_mapping_code(mappings, standard, df):
+def generate_python_mapping_code(mappings, standard, df, version=""):
     """
     Generate Python code for mapping data to FHIR format.
     
@@ -430,6 +433,7 @@ def generate_python_mapping_code(mappings, standard, df):
         mappings: Dict containing the mappings from columns to FHIR fields
         standard: The FHIR standard used
         df: The original dataframe
+        version: The version of the implementation guide (optional)
     
     Returns:
         str containing the Python code

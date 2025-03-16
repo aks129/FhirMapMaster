@@ -25,7 +25,8 @@ def render_resource_selector():
     
     st.info(f"Configuring resources for **{fhir_standard} {ig_version}** Implementation Guide")
     
-    fhir_resources = get_fhir_resources(fhir_standard)
+    # Get resources with the specific version
+    fhir_resources = get_fhir_resources(fhir_standard, ig_version)
     
     # Initialize selected_resources in session state if not present
     if 'selected_resources' not in st.session_state:
