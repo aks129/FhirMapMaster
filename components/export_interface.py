@@ -74,127 +74,88 @@ def render_export_interface():
         # Export options with Spider-Man theme
         st.subheader("🕸️ Web Export Options")
         
-        st.subheader("Target Format")
-        export_standard = st.radio(
-            "Choose Your Target Healthcare Standard:",
-            [
-                "🔬 FHIR (HL7 FHIR Resources)",
-                "📋 HL7 v2 Messages",
-                "📄 C-CDA Documents"
-            ],
-            index=0,
-            help="Choose which healthcare standard you want to map your data to"
-        )
+        # Display IG information
+        st.subheader("FHIR Implementation Guide")
+        st.info(f"🔬 Your data will be mapped to **FHIR R4B** using the **{st.session_state.fhir_standard} {st.session_state.ig_version}** Implementation Guide")
+        
+        # Validation results if available
+        if 'validation_results' in st.session_state and st.session_state.validation_results:
+            st.markdown("### Validation Results")
+            
+            validation_results = st.session_state.validation_results
+            if validation_results.get('status') == 'success':
+                st.success("✅ FHIR Validation Complete: Your resources comply with the selected Implementation Guide!")
+            elif validation_results.get('status') == 'warning':
+                st.warning(f"⚠️ FHIR Validation Warning: {validation_results.get('message', 'Minor issues found in validation')}")
+            else:
+                st.error(f"❌ FHIR Validation Failed: {validation_results.get('message', 'Resources do not comply with the selected Implementation Guide')}")
+                
+            # Show validation details if available
+            if 'details' in validation_results:
+                with st.expander("See Validation Details"):
+                    for detail in validation_results['details']:
+                        severity = detail.get('severity', 'info')
+                        message = detail.get('message', 'No details provided')
+                        location = detail.get('location', 'Unknown location')
+                        
+                        if severity == 'error':
+                            st.error(f"**Error** at {location}: {message}")
+                        elif severity == 'warning':
+                            st.warning(f"**Warning** at {location}: {message}")
+                        else:
+                            st.info(f"**Info** at {location}: {message}")
         
         st.subheader("Export Format")
-        if "FHIR" in export_standard:
-            export_format = st.radio(
-                "Choose Your Export Format:",
-                [
-                    "🐍 Python Web-Shooter", 
-                    "📊 JSON Web Blueprint", 
-                    "🌐 FHIR Mapping Language (FML)"
-                ],
-                index=0,
-                help="Choose the format for your exported mapping."
-            )
-        elif "HL7 v2" in export_standard:
-            export_format = st.radio(
-                "Choose Your HL7 v2 Export Format:",
-                [
-                    "🐍 Python HL7 v2 Generator",
-                    "📋 Sample HL7 v2 Messages"
-                ],
-                index=0,
-                help="Choose the format for your HL7 v2 export."
-            )
-        else:  # C-CDA
-            export_format = st.radio(
-                "Choose Your C-CDA Export Format:",
-                [
-                    "🐍 Python C-CDA Generator",
-                    "📄 Sample C-CDA Document"
-                ],
-                index=0,
-                help="Choose the format for your C-CDA export."
-            )
+        export_format = st.radio(
+            "Choose Your FHIR Export Format:",
+            [
+                "🐍 Python Web-Shooter", 
+                "📊 JSON Web Blueprint", 
+                "🌐 FHIR Mapping Language (FML)"
+            ],
+            index=0,
+            help="Choose the format for your exported mapping."
+        )
         
-        if "FHIR" in export_standard:
-            if "Python" in export_format:
-                format_key = "python"
-                st.markdown("""
-                **🐍 Python Web-Shooter** provides a complete Python function that transforms your data into FHIR resources.
-                Perfect for high-flying data pipelines in environments like Databricks or your ETL process.
-                
-                *"This Python script packs the same punch as my web-shooters!"* - Parker
-                """)
-            elif "JSON" in export_format:
-                format_key = "json"
-                st.markdown("""
-                **📊 JSON Web Blueprint** provides a structured representation of your mapping that can be easily integrated
-                with other tools or loaded into your own custom processing logic.
-                
-                *"A blueprint of my web design that any system can understand!"* - Parker
-                """)
-            else:  # FHIR Mapping Language
-                format_key = "fml"
-                st.markdown("""
-                **🌐 FHIR Mapping Language (FML)** provides a standards-based mapping representation defined by HL7 FHIR.
-                Includes StructureMap, Clinical Quality Language (CQL) accessors, and Liquid templates, fully compatible with FHIR mapping engines.
-                
-                *"For the advanced web-slingers who speak the official language of FHIR!"* - Parker
-                
-                [Learn more about FHIR Mapping Language](https://www.hl7.org/fhir/mapping-language.html)
-                """)
-                
-                # Display FML viewer for detailed exploration
-                if "df" in st.session_state:
-                    render_fml_viewer(mappings, st.session_state.df, fhir_standard)
-        
-        elif "HL7 v2" in export_standard:
-            if "Python" in export_format:
-                format_key = "hl7v2_python"
-                st.markdown("""
-                **🐍 Python HL7 v2 Generator** provides a complete Python function that transforms your data into HL7 v2 messages.
-                Integrate with existing HL7 interfaces or run standalone to process your healthcare data.
-                
-                *"These Python functions swing your data right into legacy healthcare systems!"* - Parker
-                """)
-            else:  # Sample Messages
-                format_key = "hl7v2_samples"
-                st.markdown("""
-                **📋 Sample HL7 v2 Messages** shows you exactly how your data would look when transformed into actual HL7 v2 messages.
-                Great for validation and testing with your healthcare systems.
-                
-                *"See your data transformed into real hospital messages - no spider bite needed!"* - Parker
-                """)
-                
-        else:  # C-CDA
-            if "Python" in export_format:
-                format_key = "ccda_python"
-                st.markdown("""
-                **🐍 Python C-CDA Generator** provides a complete Python function that transforms your data into C-CDA XML documents.
-                Perfect for creating clinical documents that meet healthcare interoperability standards.
-                
-                *"This Python code weaves clinical documents faster than I swing between buildings!"* - Parker
-                """)
-            else:  # Sample Document
-                format_key = "ccda_sample"
-                st.markdown("""
-                **📄 Sample C-CDA Document** shows you a preview of how your data would look as a fully-formed C-CDA clinical document.
-                Great for validating your document structure before integration.
-                
-                *"It's like seeing the blueprint for your clinical document web before it's deployed!"* - Parker
-                """)
+        if "Python" in export_format:
+            format_key = "python"
+            st.markdown("""
+            **🐍 Python Web-Shooter** provides a complete Python function that transforms your data into FHIR R4B resources.
+            Perfect for high-flying data pipelines in environments like Databricks or your ETL process.
+            
+            *"This Python script packs the same punch as my web-shooters!"* - Parker
+            """)
+        elif "JSON" in export_format:
+            format_key = "json"
+            st.markdown("""
+            **📊 JSON Web Blueprint** provides a structured representation of your mapping that can be easily integrated
+            with other tools or loaded into your own custom processing logic.
+            
+            *"A blueprint of my web design that any system can understand!"* - Parker
+            """)
+        else:  # FHIR Mapping Language
+            format_key = "fml"
+            st.markdown("""
+            **🌐 FHIR Mapping Language (FML)** provides a standards-based mapping representation defined by HL7 FHIR.
+            Includes StructureMap, Clinical Quality Language (CQL) accessors, and Liquid templates, fully compatible with FHIR mapping engines.
+            
+            *"For the advanced web-slingers who speak the official language of FHIR!"* - Parker
+            
+            [Learn more about FHIR Mapping Language](https://www.hl7.org/fhir/mapping-language.html)
+            """)
+            
+            # Display FML viewer for detailed exploration
+            if "df" in st.session_state:
+                render_fml_viewer(mappings, st.session_state.df, fhir_standard)
         
         # Export button with Spider-Man theme
         if st.button("🕸️ Generate Web Export"):
             with st.spinner("🕸️ Parker is weaving your export..."):
                 # Make sure we have a DataFrame for any export that needs it
                 df = None
-                df_required_formats = ["fml", "hl7v2_python", "hl7v2_samples", "ccda_python", "ccda_sample"]
+                df_required_formats = ["fml"]  # Only FML requires the dataframe now
                 
-                if any(req_format in format_key for req_format in df_required_formats) and "df" in st.session_state:
+                if format_key in df_required_formats and "df" in st.session_state:
                     df = st.session_state.df
                 
                 # Generate the export content
@@ -211,12 +172,8 @@ def render_export_interface():
                     language = "python"
                 elif "json" in format_key:
                     language = "json"
-                elif "xml" in format_key or format_key == "ccda_sample":
-                    language = "xml"
-                elif format_key == "hl7v2_samples":
-                    language = "text"
                 else:
-                    language = "json"
+                    language = "text"  # Default for FML
                     
                 st.code(content, language=language)
                 

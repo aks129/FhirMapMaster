@@ -36,30 +36,61 @@ st.title("🕸️ Parker: Your Friendly Healthcare Data Mapper 🕸️")
 st.markdown("""
 ### *"With great healthcare data comes great interoperability responsibility!"*
 
-**Parker** swings to the rescue, transforming your complex healthcare data into multiple healthcare standards with superhero speed and precision! Powered by AI-assisted mapping suggestions, Parker helps you fight the chaos of non-standardized healthcare data.
+**Parker** swings to the rescue, transforming your complex healthcare data into FHIR R4B standards with superhero speed and precision! Powered by AI-assisted mapping suggestions, Parker helps you fight the chaos of non-standardized healthcare data.
 
-Upload your data file, choose your target healthcare standard (FHIR, HL7 v2, or C-CDA), and let Parker do the heavy lifting!
+Upload your data file or source format (HL7 v2, C-CDA), select the appropriate FHIR Implementation Guide, and let Parker do the heavy lifting!
 
-**Supported Healthcare Standards:**
-- 🔬 **FHIR HL7** (US Core or CARIN BB Implementation Guides)
+**Supported Source Formats:**
+- 📊 **Raw Data Files** (CSV, Excel, JSON)
 - 📋 **HL7 v2 Messages** (ADT, ORM, ORU and more)
 - 📄 **C-CDA Documents** (Problems, Medications, Allergies and more)
+
+**Target Format:**
+- 🔬 **FHIR R4B** with support for multiple Implementation Guides:
+  - US Core (versions 6.1, 7.0)
+  - CARIN BB (versions 1.0, 2.0)
 """)
 
 # Sidebar navigation and settings with Parker theme
 with st.sidebar:
     st.markdown("## 🕸️ Parker's Web Console 🕸️")
     
-    st.markdown("### 🕷️ Choose Your Super-Standards")
+    st.markdown("### 🕷️ Configure FHIR Settings")
     
-    # Add a note about export options
-    st.info("All healthcare standards (FHIR, HL7 v2, C-CDA) are available at export time - you can generate any format regardless of the starting standard.")
+    # Add a note about FHIR R4B
+    st.info("Parker maps your data to FHIR R4B standard with validation against selected Implementation Guides.")
     
-    # FHIR Standard Selection for initial mapping
-    st.session_state.fhir_standard = st.radio(
-        "Select FHIR Implementation Guide for Initial Mapping:",
+    # FHIR Standard Selection with version options
+    st.markdown("#### Select Implementation Guide:")
+    
+    ig_selection = st.radio(
+        "Implementation Guide Type:",
         ["US Core (Clinical Data)", "CARIN BB (Payor Data)"]
     )
+    
+    # Store the implementation guide type
+    if "US Core" in ig_selection:
+        base_ig = "US Core"
+        # Add version selection for US Core
+        ig_version = st.selectbox(
+            "US Core Version:",
+            ["6.1.0", "7.0.0"], 
+            index=0,
+            help="Select the version of US Core Implementation Guide to map against"
+        )
+    else:
+        base_ig = "CARIN BB"
+        # Add version selection for CARIN BB
+        ig_version = st.selectbox(
+            "CARIN BB Version:",
+            ["1.0.0", "2.0.0"], 
+            index=0,
+            help="Select the version of CARIN BB Implementation Guide to map against"
+        )
+    
+    # Store the full IG specification in session state
+    st.session_state.fhir_standard = base_ig
+    st.session_state.ig_version = ig_version
     
     # Display current status with Spider-Man theme
     st.markdown("### 🕸️ Spider-Sense Status Tracker")
@@ -87,7 +118,17 @@ with st.sidebar:
         st.session_state.export_step = False
         st.session_state.llm_suggestions = {}
         st.session_state.show_api_key_setup = False
-        # Keep the llm_client intact as it's tied to the API key
+        # Keep the fhir_standard and ig_version as they're configuration options
+        # Also keep the llm_client intact as it's tied to the API key
+        
+        # Reset any resource selection
+        if 'selected_resources' in st.session_state:
+            st.session_state.pop('selected_resources', None)
+        
+        # Reset validation state
+        if 'validation_results' in st.session_state:
+            st.session_state.pop('validation_results', None)
+            
         st.rerun()
 
 # Main workflow
@@ -110,7 +151,7 @@ st.markdown("""
 <div style="text-align: center;">
     <p>🕸️ <b>Parker: Your Friendly Healthcare Data Mapper</b> 🕸️</p>
     <p><i>"Mapping healthcare data with great power and great responsibility!"</i></p>
-    <p>© 2025 Parker Industries | Multi-Format Healthcare Mapping Tool</p>
-    <p>Supports FHIR, HL7 v2, and C-CDA Formats</p>
+    <p>© 2025 Parker Industries | Healthcare Data to FHIR R4B Mapping Tool</p>
+    <p>Maps from HL7 v2, C-CDA, and other formats to FHIR R4B with full IG validation</p>
 </div>
 """, unsafe_allow_html=True)
