@@ -1,0 +1,4 @@
+patient_id,first_name,last_name,date_of_birth,gender,diagnosis_code,diagnosis_description,encounter_date
+P001,John,Doe,1980-01-15,M,E11.9,Type 2 diabetes,2024-01-15
+P002,Jane,Smith,1992-07-20,F,I10,Hypertension,2024-01-20
+P003,Bob,Johnson,1975-12-03,M,J45.909,Asthma,2024-01-25

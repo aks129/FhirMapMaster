@@ -260,9 +260,9 @@ def test_claims_mapping():
         mapping = get_claims_mapping(col)
         if mapping:
             matched_count += 1
-            print(f"✅ {col} -> {mapping['resource']}.{mapping['field']} (Confidence: {mapping['confidence']:.2f}, Type: {mapping['match_type']})")
+            print(f"[OK] {col} -> {mapping['resource']}.{mapping['field']} (Confidence: {mapping['confidence']:.2f}, Type: {mapping['match_type']})")
         else:
-            print(f"❌ {col} -> No mapping found")
+            print(f"[X] {col} -> No mapping found")
     
     print(f"\nSuccessfully matched {matched_count} out of {len(test_columns)} test columns ({matched_count/len(test_columns)*100:.1f}%)")
     
@@ -303,29 +303,29 @@ def test_claims_mapping():
         print("\nMatch type statistics:")
         for match_type, count in results['match_types'].items():
             if count > 0:
-                print(f"  🕸️ {match_type}: {count} matches")
+                print(f"  - {match_type}: {count} matches")
         
         # Show a few sample successes with Spider-Man theme confidence indicators
         print("\nSample successful matches:")
         for i, match in enumerate(results['success'][:10]):  # Show first 10 matches
             confidence = match['confidence']
-            # Spider-Man themed confidence indicators
+            # Confidence indicators
             if confidence >= 0.9:
-                indicator = "🟢"  # High confidence (Green)
+                indicator = "[HIGH]"  # High confidence
             elif confidence >= 0.7:
-                indicator = "🟡"  # Medium confidence (Yellow)
+                indicator = "[MED]"  # Medium confidence
             elif confidence >= 0.5:
-                indicator = "🟠"  # Low confidence (Orange)
+                indicator = "[LOW]"  # Low confidence
             else:
-                indicator = "🔴"  # Very low confidence (Red)
-                
+                indicator = "[VLOW]"  # Very low confidence
+
             print(f"  {indicator} {match['column']} -> {match['mapped_to']} (Confidence: {match['confidence']:.2f}, Type: {match['match_type']})")
         
         # Show a few failed matches
         if results['failed']:
             print("\nSample failed matches:")
             for failed in results['failed'][:5]:  # Show first 5 failures
-                print(f"  ❌ {failed}")
+                print(f"  [X] {failed}")
     
     except ImportError as e:
         print(f"Error testing pattern matching: {e}")
@@ -363,9 +363,9 @@ if __name__ == "__main__":
         resource = mappings.get("column_to_resource", {}).get(col_lower)
         field = mappings.get("column_to_field", {}).get(col_lower)
         if resource and field:
-            print(f"✅ {col} -> {resource}.{field}")
+            print(f"[OK] {col} -> {resource}.{field}")
         else:
-            print(f"❌ {col} -> No mapping found")
+            print(f"[X] {col} -> No mapping found")
     
     # Save the mappings to a JSON file for reference
     if not os.path.exists("cache/cpcds"):
