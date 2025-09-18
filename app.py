@@ -1,9 +1,10 @@
 import streamlit as st
+import os
 from components.file_uploader import render_file_uploader
 from components.data_profiler import render_data_profiler
 from components.mapping_interface_new import render_mapping_interface
 from components.export_interface import render_export_interface
-import os
+from components.resource_selector import render_resource_selector
 
 # Create cache directories if they don't exist
 def ensure_cache_dirs():
@@ -168,8 +169,6 @@ with st.sidebar:
             
         st.rerun()
 
-# Import the new components
-from components.resource_selector import render_resource_selector
 
 # Main workflow
 # Step 1: File Upload and Data Preview

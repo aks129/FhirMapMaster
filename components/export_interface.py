@@ -1,11 +1,9 @@
 import streamlit as st
-import json
 import pandas as pd
 from utils.export_service import export_mapping_as_file, get_download_link
-from utils.fhir_mapper import generate_python_mapping_code
 from components.fml_viewer import render_fml_viewer
-from utils.hl7_v2_mapping import suggest_hl7_v2_mappings, generate_hl7_v2_code, generate_hl7_v2_samples
-from utils.ccda_mapping import suggest_ccda_mappings, generate_ccda_template_code, generate_ccda_sample
+from utils.hl7_v2_mapping import generate_hl7_v2_samples
+from utils.ccda_mapping import generate_ccda_template_code, generate_ccda_sample
 
 def render_export_interface():
     """
