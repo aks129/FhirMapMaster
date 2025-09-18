@@ -1,10 +1,9 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index" }
-  ],
-  "functions": {
-    "api/index.py": {
-      "runtime": "python@3.9"
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://share.streamlit.io/deploy?repository=https://github.com/aks129/FhirMapMaster",
+      "permanent": false
     }
-  }
+  ]
 }

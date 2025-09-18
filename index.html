@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parker - FHIR Mapping Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 3rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            margin: 1rem;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+        .emoji {
+            font-size: 3rem;
+            margin: 1rem 0;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin: 1rem 0;
+        }
+        .disclaimer {
+            color: #ff0000;
+            font-weight: bold;
+            margin: 2rem 0;
+            padding: 1rem;
+            background: #fff5f5;
+            border: 2px solid #ff0000;
+            border-radius: 0.5rem;
+        }
+        .button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            margin: 1rem 0.5rem;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #5a67d8;
+        }
+        .secondary-button {
+            background: #48bb78;
+        }
+        .secondary-button:hover {
+            background: #38a169;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="emoji">🕸️</div>
+        <h1>Parker</h1>
+        <p><strong>Your Friendly Healthcare Data Mapper</strong></p>
+        <p><em>"Mapping healthcare data with great power and great responsibility!"</em></p>
+
+        <p>Parker is a FHIR mapping tool that transforms healthcare data from various formats (CSV, HL7 v2, C-CDA, JSON, XML) into FHIR R4B resources. It's a Streamlit-based web application with AI-assisted mapping capabilities.</p>
+
+        <div class="disclaimer">
+            ⚠️ DISCLAIMER: This is experimental software for proof of concept only.<br>
+            Do NOT load PHI or confidential data.<br>
+            Use at your own discretion and risk.
+        </div>
+
+        <p><strong>This application requires Streamlit hosting to run properly.</strong></p>
+
+        <a href="https://share.streamlit.io/deploy?repository=https://github.com/aks129/FhirMapMaster" class="button secondary-button">
+            Deploy on Streamlit Cloud
+        </a>
+
+        <a href="https://github.com/aks129/FhirMapMaster" class="button">
+            View on GitHub
+        </a>
+
+        <p style="margin-top: 2rem; color: #999; font-size: 0.9rem;">
+            © 2025 Parker Industries | Healthcare Data to FHIR R4B Mapping Tool
+        </p>
+    </div>
+</body>
+</html>
