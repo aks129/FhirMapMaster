@@ -1,8 +1,11 @@
 # Deployment Guide for Parker FHIR Mapper
 
-## Important Note
+## 🚀 Current Live Deployments
 
-**This is a Streamlit application and CANNOT be deployed to Vercel.** Vercel is designed for static sites and serverless functions, not persistent Python servers required by Streamlit.
+### Production URLs
+- **Streamlit Cloud (Primary):** https://fhirmapmaster.streamlit.app ✅ LIVE
+- **Vercel Landing Page:** https://fhir-map-master.vercel.app (redirects to Streamlit)
+- **GitHub Repository:** https://github.com/aks129/FhirMapMaster
 
 ## Recommended Deployment Platforms
 
