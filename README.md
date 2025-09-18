@@ -1,8 +1,18 @@
 
 
-# 🔄 Parker: The FHIR Mapper & Converter Tool
+# 🕸️ Parker: The FHIR Mapper & Converter Tool
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fhirmapmaster.streamlit.app)
+[![GitHub](https://img.shields.io/badge/GitHub-View%20on%20GitHub-blue)](https://github.com/aks129/FhirMapMaster)
+[![Deploy](https://img.shields.io/badge/Deploy-On%20Streamlit-red)](https://share.streamlit.io/deploy?repository=https://github.com/aks129/FhirMapMaster)
 
 **Parker** is an intelligent, flexible FHIR mapping tool that enables users to transform healthcare data from legacy and flat file formats (CSV, HL7 v2, CCDA, JSON, XML) into clean, standards-compliant **FHIR resources**. Choose your destination spec — such as **US Core**, **CARIN Blue Button**, or **Da Vinci PDex** — and Parker guides you through the mapping, validation, and transformation process.
+
+## 🚀 Live Demo
+
+**Try Parker now:** [https://fhirmapmaster.streamlit.app](https://fhirmapmaster.streamlit.app)
+
+> ⚠️ **IMPORTANT**: This is experimental software for proof of concept only. Do NOT load PHI or confidential data.
 
 ---
 
