@@ -12,20 +12,24 @@ Parker is a FHIR mapping tool that transforms healthcare data from various forma
 ```bash
 # Install dependencies (using pyproject.toml)
 pip install -e .
+# OR using requirements.txt
+pip install -r requirements.txt
 # OR install specific packages
 pip install streamlit pandas anthropic openai hl7 openpyxl plotly trafilatura twilio xlrd
 
 # Run the application
 streamlit run app.py --server.port 5000
+# OR just (port 5000 is default in .streamlit/config.toml)
+streamlit run app.py
 
 # Run the test script
 python test_cpcds_parser.py
 ```
 
 ### Key Development Commands
-- Run app: `streamlit run app.py`
+- Run app: `streamlit run app.py` (default port 5000)
 - Test CPCDS parser: `python test_cpcds_parser.py`
-- Default port: 5000 (configured in `.streamlit/config.toml`)
+- Check Python version: Requires Python 3.11+
 
 ## Architecture
 
@@ -102,6 +106,8 @@ Required directories (auto-created by app):
 - Utility modules in `utils/` provide core functionality
 - No formal test suite currently - only `test_cpcds_parser.py` for testing CPCDS mappings
 - Uses Streamlit's built-in server configuration (`.streamlit/config.toml`)
+- Live deployment: https://fhirmapmaster.streamlit.app
+- GitHub repository: https://github.com/aks129/FhirMapMaster
 
 ## Common Tasks
 
@@ -119,3 +125,14 @@ Required directories (auto-created by app):
 1. Core logic in `enhanced_mapper.py`
 2. Field transformation functions in `FieldMapper` class
 3. Pattern matching rules in `PatternBasedMappingSuggester`
+
+## Environment Variables
+
+For LLM integration (optional, falls back to pattern-based mapping):
+- `OPENAI_API_KEY` - OpenAI API key for GPT mapping suggestions
+- `ANTHROPIC_API_KEY` - Anthropic API key for Claude mapping suggestions
+
+Can be set via:
+- Environment variables
+- Streamlit secrets (`.streamlit/secrets.toml`)
+- UI configuration in the application

@@ -1,0 +1,161 @@
+{
+  "resourceType": "Patient",
+  "id": "{{ patient_id | sanitize_id }}",
+  "meta": {
+    "profile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    ]
+  },
+  "identifier": [
+    {
+      "use": "usual",
+      "system": "{{ organization_id_system }}",
+      "value": "{{ patient_id }}"
+    }
+    {%- if ssn -%}
+    ,{
+      "use": "official",
+      "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+      "code": "SS",
+      "value": "{{ ssn }}"
+    }
+    {%- endif -%}
+  ],
+  "active": true,
+  "name": [
+    {
+      "use": "official",
+      "family": "{{ last_name | strip | capitalize }}",
+      "given": [
+        "{{ first_name | strip | capitalize }}"
+        {%- if middle_name -%}
+        , "{{ middle_name | strip | capitalize }}"
+        {%- endif -%}
+      ]
+      {%- if name_prefix -%}
+      ,"prefix": ["{{ name_prefix }}"]
+      {%- endif -%}
+      {%- if name_suffix -%}
+      ,"suffix": ["{{ name_suffix }}"]
+      {%- endif -%}
+    }
+  ],
+  {%- if phone_number -%}
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "{{ phone_number }}",
+      "use": "home"
+    }
+    {%- if email -%}
+    ,{
+      "system": "email",
+      "value": "{{ email }}",
+      "use": "home"
+    }
+    {%- endif -%}
+  ],
+  {%- endif -%}
+  "gender": "{% if gender | lower == 'm' or gender | lower == 'male' %}male{% elif gender | lower == 'f' or gender | lower == 'female' %}female{% elif gender | lower == 'o' or gender | lower == 'other' %}other{% else %}unknown{% endif %}",
+  {%- if birth_date -%}
+  "birthDate": "{{ birth_date | to_fhir_date }}",
+  {%- endif -%}
+  {%- if deceased_flag == 'true' or deceased_flag == '1' -%}
+  "deceasedBoolean": true,
+  {%- elif deceased_date -%}
+  "deceasedDateTime": "{{ deceased_date | to_fhir_date }}",
+  {%- endif -%}
+  {%- if street_address or city or state or postal_code -%}
+  "address": [
+    {
+      "use": "home",
+      "type": "both",
+      {%- if street_address -%}
+      "line": ["{{ street_address }}"],
+      {%- endif -%}
+      {%- if city -%}
+      "city": "{{ city }}",
+      {%- endif -%}
+      {%- if state -%}
+      "state": "{{ state }}",
+      {%- endif -%}
+      {%- if postal_code -%}
+      "postalCode": "{{ postal_code }}",
+      {%- endif -%}
+      {%- if country -%}
+      "country": "{{ country }}"
+      {%- else -%}
+      "country": "US"
+      {%- endif -%}
+    }
+  ],
+  {%- endif -%}
+  {%- if marital_status -%}
+  "maritalStatus": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+        "code": "{% if marital_status | lower == 'married' %}M{% elif marital_status | lower == 'single' %}S{% elif marital_status | lower == 'divorced' %}D{% elif marital_status | lower == 'widowed' %}W{% else %}UNK{% endif %}",
+        "display": "{{ marital_status | capitalize }}"
+      }
+    ]
+  },
+  {%- endif -%}
+  {%- if emergency_contact_name or emergency_contact_phone -%}
+  "contact": [
+    {
+      "relationship": [
+        {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v2-0131",
+              "code": "EP",
+              "display": "Emergency contact person"
+            }
+          ]
+        }
+      ],
+      {%- if emergency_contact_name -%}
+      "name": {
+        "text": "{{ emergency_contact_name }}"
+      },
+      {%- endif -%}
+      {%- if emergency_contact_phone -%}
+      "telecom": [
+        {
+          "system": "phone",
+          "value": "{{ emergency_contact_phone }}"
+        }
+      ]
+      {%- endif -%}
+    }
+  ],
+  {%- endif -%}
+  {%- if race or ethnicity -%}
+  "extension": [
+    {%- if race -%}
+    {
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race",
+      "extension": [
+        {
+          "url": "text",
+          "valueString": "{{ race }}"
+        }
+      ]
+    }
+    {%- if ethnicity -%},{%- endif -%}
+    {%- endif -%}
+    {%- if ethnicity -%}
+    {
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity",
+      "extension": [
+        {
+          "url": "text",
+          "valueString": "{{ ethnicity }}"
+        }
+      ]
+    }
+    {%- endif -%}
+  ]
+  {%- endif -%}
+}

@@ -1,0 +1,54 @@
+name: "Patient Demographics Processing"
+description: "Transform patient demographics data to FHIR Patient resources"
+version: "1.0.0"
+
+global_config:
+  organization_id_system: "https://example.org/patients"
+  fhir_base_url: "https://fhir.example.org"
+
+stages:
+  - name: "extract_patient_data"
+    type: "extract"
+    config:
+      source: "file"
+      path: "data/input/patients.csv"
+      format: "csv"
+
+  - name: "transform_to_fhir"
+    type: "transform"
+    depends_on: ["extract_patient_data"]
+    config:
+      type: "template"
+      template_id: "patient_demographics_basic"
+      parameters:
+        source_id_field: "patient_id"
+        first_name_field: "first_name"
+        last_name_field: "last_name"
+        birth_date_field: "date_of_birth"
+        gender_field: "gender"
+
+  - name: "validate_fhir_resources"
+    type: "validate"
+    depends_on: ["transform_to_fhir"]
+    config:
+      type: "fhir"
+      profile: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+      level: "standard"
+      strict_mode: false
+
+  - name: "load_to_server"
+    type: "load"
+    depends_on: ["validate_fhir_resources"]
+    config:
+      destination: "fhir_server"
+      endpoint: "{{ fhir_base_url }}/Patient"
+      auth: "bearer"
+      token: "${FHIR_SERVER_TOKEN}"
+
+error_handling:
+  on_failure: "rollback"
+  notifications:
+    - type: "email"
+      recipients: ["data-team@example.org"]
+    - type: "slack"
+      channel: "#fhir-alerts"
