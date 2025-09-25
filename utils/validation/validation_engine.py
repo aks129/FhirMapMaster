@@ -15,9 +15,15 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import pandas as pd
-import structlog
+try:
+    import structlog
+except ImportError:
+    import logging as structlog
 
-logger = structlog.get_logger(__name__)
+try:
+    logger = structlog.get_logger(__name__)
+except:
+    logger = structlog.getLogger(__name__)
 
 
 class ValidationSeverity(Enum):

@@ -18,14 +18,20 @@ import tempfile
 
 import pandas as pd
 from jinja2 import Environment, BaseLoader, select_autoescape
-import structlog
+try:
+    import structlog
+except ImportError:
+    import logging as structlog
 
 # Import our other components
 from .database_adapter import database_service
 from ..validation.validation_engine import validation_engine, ValidationLevel
 from ..core.template_manager import template_manager
 
-logger = structlog.get_logger(__name__)
+try:
+    logger = structlog.get_logger(__name__)
+except:
+    logger = structlog.getLogger(__name__)
 
 
 class PipelineStageType(Enum):

@@ -16,9 +16,15 @@ import importlib.util
 
 import pandas as pd
 import numpy as np
-import structlog
+try:
+    import structlog
+except ImportError:
+    import logging as structlog
 
-logger = structlog.get_logger(__name__)
+try:
+    logger = structlog.get_logger(__name__)
+except:
+    logger = structlog.getLogger(__name__)
 
 
 class DatabasePlatform(Enum):

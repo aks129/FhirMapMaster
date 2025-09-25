@@ -13,14 +13,23 @@ from dataclasses import dataclass, asdict, field
 from enum import Enum
 from pathlib import Path
 import re
-import git
+try:
+    import git
+except ImportError:
+    git = None
 
 import pandas as pd
 import jinja2
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-import structlog
+try:
+    import structlog
+except ImportError:
+    import logging as structlog
 
-logger = structlog.get_logger(__name__)
+try:
+    logger = structlog.get_logger(__name__)
+except:
+    logger = structlog.getLogger(__name__)
 
 
 class TemplateCategory(Enum):
