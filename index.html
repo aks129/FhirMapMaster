@@ -3,42 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parker - FHIR Mapping Tool</title>
-    <meta http-equiv="refresh" content="3; URL='https://fhirmapmaster.streamlit.app'" />
+    <title>Parker v2.0 - Advanced FHIR Mapping Platform</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        * {
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-sizing: border-box;
         }
-        .container {
-            text-align: center;
-            background: white;
-            padding: 3rem;
-            border-radius: 1rem;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 600px;
-            margin: 1rem;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 0.5rem;
-            font-size: 2.5rem;
-        }
-        .emoji {
-            font-size: 3rem;
-            margin: 1rem 0;
-        }
-        p {
-            color: #666;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
-            margin: 1rem 0;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            padding: 40px 0;
+        }
+
+        .logo {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
         .disclaimer {
             color: #ff0000;
             font-weight: bold;
@@ -47,56 +62,253 @@
             background: #fff5f5;
             border: 2px solid #ff0000;
             border-radius: 0.5rem;
+            text-align: center;
         }
-        .button {
-            display: inline-block;
-            padding: 1rem 2rem;
-            background: #667eea;
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-decoration: none;
-            border-radius: 0.5rem;
-            margin: 1rem 0.5rem;
-            transition: background 0.3s;
+            border-radius: 10px;
+            transition: transform 0.3s;
+            text-align: center;
         }
-        .button:hover {
-            background: #5a67d8;
+
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
         }
-        .secondary-button {
-            background: #48bb78;
+
+        .btn-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
         }
-        .secondary-button:hover {
-            background: #38a169;
+
+        .btn-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .feature {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .api-test {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f0f4ff;
+            border-radius: 10px;
+        }
+
+        .test-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .test-button:hover {
+            background: #5a6fc8;
+        }
+
+        #api-response {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: white;
+            margin: 0 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="emoji">🕸️</div>
-        <h1>Parker</h1>
-        <p><strong>Your Friendly Healthcare Data Mapper</strong></p>
-        <p><em>"Mapping healthcare data with great power and great responsibility!"</em></p>
+        <header>
+            <div class="logo">🕸️</div>
+            <h1>Parker v2.0</h1>
+            <p class="subtitle">Advanced FHIR Mapping Platform with AI Assistance</p>
+        </header>
 
-        <p>Parker is a FHIR mapping tool that transforms healthcare data from various formats (CSV, HL7 v2, C-CDA, JSON, XML) into FHIR R4B resources. It's a Streamlit-based web application with AI-assisted mapping capabilities.</p>
+        <div class="content">
+            <div class="disclaimer">
+                ⚠️ DISCLAIMER: This is experimental software for proof of concept only.<br>
+                Do NOT load PHI or confidential data. Use at your own discretion and risk.
+            </div>
 
-        <div class="disclaimer">
-            ⚠️ DISCLAIMER: This is experimental software for proof of concept only.<br>
-            Do NOT load PHI or confidential data.<br>
-            Use at your own discretion and risk.
+            <h2>🚀 Access the Platform</h2>
+
+            <div class="buttons">
+                <a href="https://fhirmapmaster.streamlit.app" class="btn" target="_blank">
+                    <div class="btn-icon">🎯</div>
+                    <div class="btn-title">Launch Web App</div>
+                </a>
+
+                <a href="https://github.com/aks129/FhirMapMaster" class="btn" target="_blank">
+                    <div class="btn-icon">📖</div>
+                    <div class="btn-title">GitHub Repository</div>
+                </a>
+
+                <a href="https://github.com/aks129/FhirMapMaster/blob/main/README_V2.md" class="btn" target="_blank">
+                    <div class="btn-icon">📚</div>
+                    <div class="btn-title">Documentation</div>
+                </a>
+
+                <a href="#api-test" class="btn">
+                    <div class="btn-icon">🔧</div>
+                    <div class="btn-title">Test API</div>
+                </a>
+            </div>
+
+            <h2>✨ New in Version 2.0</h2>
+
+            <div class="features">
+                <div class="feature">
+                    <h3>🤖 Multi-LLM AI Integration</h3>
+                    <p>OpenAI & Anthropic support with confidence scoring</p>
+                </div>
+
+                <div class="feature">
+                    <h3>✅ Multi-Layer Validation</h3>
+                    <p>Comprehensive FHIR validation framework</p>
+                </div>
+
+                <div class="feature">
+                    <h3>💾 Database Flexibility</h3>
+                    <p>DuckDB local & Databricks cloud support</p>
+                </div>
+
+                <div class="feature">
+                    <h3>⚡ Pipeline Automation</h3>
+                    <p>YAML-based transformation pipelines</p>
+                </div>
+            </div>
+
+            <div class="api-test" id="api-test">
+                <h2>🔧 Test API</h2>
+                <button class="test-button" onclick="testAPI('/api/health')">Health Check</button>
+                <button class="test-button" onclick="testValidation()">Test Validation</button>
+                <button class="test-button" onclick="testTransform()">Test Transform</button>
+                <div id="api-response"></div>
+            </div>
         </div>
 
-        <p><strong>Redirecting to the live application in 3 seconds...</strong></p>
-
-        <a href="https://fhirmapmaster.streamlit.app" class="button secondary-button">
-            Open Live App
-        </a>
-
-        <a href="https://github.com/aks129/FhirMapMaster" class="button">
-            View on GitHub
-        </a>
-
-        <p style="margin-top: 2rem; color: #999; font-size: 0.9rem;">
-            © 2025 Parker Industries | Healthcare Data to FHIR R4B Mapping Tool
-        </p>
+        <footer>
+            <p>© 2024 FhirMapMaster - MIT License</p>
+            <a href="https://github.com/aks129/FhirMapMaster">GitHub</a>
+            <a href="https://github.com/aks129/FhirMapMaster/issues">Issues</a>
+        </footer>
     </div>
+
+    <script>
+        async function testAPI(endpoint) {
+            const responseDiv = document.getElementById('api-response');
+            responseDiv.textContent = 'Loading...';
+            try {
+                const response = await fetch(window.location.origin + endpoint);
+                const data = await response.json();
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function testValidation() {
+            const responseDiv = document.getElementById('api-response');
+            responseDiv.textContent = 'Loading...';
+            const testResource = {
+                resource: {
+                    resourceType: "Patient",
+                    id: "test-123",
+                    name: [{given: ["John"], family: "Doe"}]
+                },
+                profile: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+            };
+            try {
+                const response = await fetch(window.location.origin + '/api/validate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(testResource)
+                });
+                const data = await response.json();
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function testTransform() {
+            const responseDiv = document.getElementById('api-response');
+            responseDiv.textContent = 'Loading...';
+            const testData = {
+                data: {
+                    patient_id: "PAT123",
+                    first_name: "Jane",
+                    last_name: "Smith",
+                    birth_date: "1990-05-15",
+                    gender: "F"
+                },
+                resource_type: "Patient"
+            };
+            try {
+                const response = await fetch(window.location.origin + '/api/transform', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(testData)
+                });
+                const data = await response.json();
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        window.addEventListener('load', () => testAPI('/api/health'));
+    </script>
 </body>
 </html>

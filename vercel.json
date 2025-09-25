@@ -1,9 +1,23 @@
 {
-  "redirects": [
+  "functions": {
+    "api/health.py": {
+      "runtime": "python3.9"
+    },
+    "api/validate.py": {
+      "runtime": "python3.9"
+    },
+    "api/transform.py": {
+      "runtime": "python3.9"
+    }
+  },
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "https://fhirmapmaster.streamlit.app",
-      "permanent": false
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }

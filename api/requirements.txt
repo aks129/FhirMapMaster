@@ -1,0 +1,2 @@
+# Minimal requirements for Vercel API endpoints
+# These are lightweight dependencies for the API functions only
