@@ -1,4 +1,0 @@
-# packages.txt - System dependencies for Streamlit Cloud
-# These packages will be installed using apt-get on deployment
-
-# No additional system packages required for this app
